@@ -1,0 +1,145 @@
+{
+  "tools": [
+    {
+      "name": "search_spotify",
+      "description": "Search Spotify's catalog for candidate tracks matching a query or seed characteristics, and fetch track metadata",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search text (title/artist/genre terms)",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max results to return",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "search_youtube",
+      "description": "Search YouTube for candidate tracks and community signal (view counts, comment sentiment proxies)",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search text",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max results to return",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "search_youtube_music",
+      "description": "Search YouTube Music for candidate tracks via the unofficial ytmusicapi client",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search text",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max results to return",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "search_reddit",
+      "description": "Search Reddit for community discussion evidence (threads mentioning a track/artist, curated playlist mentions)",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search text",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "subreddits": {
+            "type": "array",
+            "description": "Optional subreddit allowlist to scope the search"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max results to return",
+            "minimum": 1,
+            "maximum": 30
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "search_musicbrainz",
+      "description": "Resolve authoritative metadata and relationships (release, recording, artist links) for a candidate track",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Title/artist to resolve",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
+      "name": "search_lastfm",
+      "description": "Fetch tag/genre data and similar-artist signal for a candidate track from Last.fm",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "artist": {
+            "type": "string",
+            "description": "Artist name",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "track": {
+            "type": "string",
+            "description": "Track title",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "artist"
+        ]
+      }
+    }
+  ]
+}
