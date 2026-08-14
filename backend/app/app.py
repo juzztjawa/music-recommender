@@ -1,8 +1,8 @@
-"""FastAPI application entrypoint.
+"""FastAPI application factory.
 
-Wires up lifespan (DB/Redis), CORS, and routers. Phase 1 exposes only the
-health endpoint; auth, discovery, feedback, and export routers are mounted
-as they are built.
+Wires up lifespan (DB/Redis), CORS, and routers. Feedback and export routers
+are mounted as they are built. Run via `backend/main.py`, not this file
+directly — see that file for why.
 """
 
 from contextlib import asynccontextmanager
@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health
+from app.api.routes import auth, discovery, health
 from app.config import settings
 from app.redis import redis_client
 
@@ -43,3 +43,5 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api", tags=["health"])
+app.include_router(auth.router, prefix="/api", tags=["auth"])
+app.include_router(discovery.router, prefix="/api", tags=["discovery"])

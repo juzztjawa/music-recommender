@@ -12,7 +12,7 @@ discovery.
 - **Backend:** FastAPI + LangChain/LangGraph (Supervisor pattern) + SQLAlchemy + PostgreSQL + Redis
 - **Frontend:** React SPA (Vite)
 - **Agents:** Orchestrator (supervisor) → Retrieval & Evidence (tool-calling) + Audio (isolated) → deterministic Selection → single-call Explanation
-- **LLM:** Ollama Cloud (`kimi-k3:cloud`, fallback `deepseek-v4-flash:cloud`)
+- **LLM:** Ollama Cloud (`deepseek-v4-flash:0731-cloud`)
 - **Audio understanding:** Music Flamingo 7B on serverless GPU (Modal / RunPod)
 
 See `architecture.md` and `srs-01.md`–`srs-04.md` for the full design and requirements.
@@ -45,8 +45,10 @@ docker compose up -d postgres redis
 cd backend
 uv sync
 cp .env.example .env   # then fill in real values
-uv run uvicorn app.main:app --reload
+uv run main.py
 ```
+
+See `SETUP.md` for full setup, credentials, and how to test what's built so far.
 
 ### 3. Frontend
 
@@ -58,4 +60,4 @@ npm run dev
 
 ## Status
 
-Phase 1 (backend skeleton) in progress.
+See `PROJECT_STATUS.md` for the current phase-by-phase implementation log.
