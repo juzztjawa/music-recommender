@@ -17,7 +17,7 @@ installed langgraph==1.2.10/langchain==1.3.14 via the LangChain docs MCP).
 """
 
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Annotated, Literal
 
 from langchain.agents import create_agent
@@ -168,13 +168,18 @@ def available_tools() -> list[BaseTool]:
 # ToolNode's implicit behavior under the now-deprecated create_react_agent.
 # Without this, a single provider hiccup (rate limit, network blip) would
 # crash the whole retrieval run instead of just costing that one tool call.
+#
+# Must be async: run_retrieval invokes the agent via ainvoke(), and
+# LangGraph's ToolNode requires an async awrap_tool_call implementation in an
+# async run — a sync-only @wrap_tool_call raises NotImplementedError there
+# (confirmed live), it isn't auto-adapted from sync.
 @wrap_tool_call
-def _handle_tool_errors(
+async def _handle_tool_errors(
     request: ToolCallRequest,
-    handler: Callable[[ToolCallRequest], ToolMessage | Command],
+    handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
 ) -> ToolMessage | Command:
     try:
-        return handler(request)
+        return await handler(request)
     except Exception as e:  # noqa: BLE001 - deliberately broad, see docstring above
         return ToolMessage(
             content=f"Tool error ({request.tool_call['name']}): {e}",

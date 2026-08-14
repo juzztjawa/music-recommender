@@ -649,4 +649,52 @@ integration case exercising all five stages together.
   unit-tested; a live sanity pass is the next thing to do manually per
   SETUP.md §4c before moving on to Phase 5.
 
+### 7.6 Incident: `_handle_tool_errors` was sync, agent runs async — `NotImplementedError`
+
+Live-testing `/api/discovery/retrieve` for the first time since the Phase
+3→4 migration (full auth round-trip, then a real hypothesis) surfaced a bug
+in the Phase 3 agent that unit tests couldn't catch: any tool call at all
+crashed the run with
+
+```
+NotImplementedError: Asynchronous implementation of awrap_tool_call is not
+available. You are likely encountering this error because you defined only
+the sync version (wrap_tool_call) and invoked your agent in an asynchronous
+context (e.g., using `astream()` or `ainvoke()`).
+```
+
+Root cause: `_handle_tool_errors` in `app/agents/retrieval.py` was a plain
+`def` decorated with `@wrap_tool_call`, but `run_retrieval` calls
+`agent.ainvoke(...)`. LangGraph's `ToolNode` does not auto-adapt a sync
+`wrap_tool_call` to an async run — it requires an async implementation
+(`awrap_tool_call`) when the agent is invoked asynchronously, and raises
+immediately on the first tool call otherwise. This applied to every tool
+call, not just failing ones, so it was never a "silent until something goes
+wrong" bug — it should have failed the very first live agent run. Best guess
+is Phase 3's original live verification (§6.5) either predates this
+middleware being added or ran under slightly different conditions; not
+fully reconstructable from git history since Phases 2-4 were only committed
+together as of this session. Either way, this is now fixed and confirmed
+live, not theoretical.
+
+Fix: made `_handle_tool_errors` an `async def`, matching the exact fix the
+error message itself recommends ("use the `@wrap_tool_call` decorator on a
+standalone async function"), and `await handler(request)` instead of calling
+it directly. One-line-equivalent change, `app/agents/retrieval.py` only.
+
+**Verified live end-to-end after the fix**: `POST /api/discovery/retrieve`
+with hypothesis "upbeat 90s alternative rock with distorted guitars, similar
+to early Weezer", `include_live=false`, `include_covers=false`,
+`target_count=10` → HTTP 200 in ~89s. Response: exactly 10 candidates
+(Superdrag, The Rentals, Nerf Herder, Fountains of Wayne, Material Issue,
+Sloan, Jellyfish, Teenage Fanclub, The Posies, Sugar), strictly sorted by
+`recommendation_strength` descending (0.92 → 0.70), all `variant: "original"`
+(no live/cover leaked through the default filters), one song per artist
+(well under the 3-per-artist cap), and every candidate carries
+`sources: ["youtube_music", "musicbrainz"]` — confirming FR-8 consolidation
+is actually merging cross-provider duplicates in a real run, not just in
+unit tests. `providers_queried` correctly reflected only the two
+credential-free providers configured in this environment.
+`uv run pytest tests/`, `ruff`, `mypy` all still clean after the fix.
+
 ---
