@@ -23,10 +23,13 @@ import logging
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel
 
-from app.agents.audio import AudioAnalysisResult, analyze_input_song
-from app.agents.retrieval import Candidate, EvidenceItem, run_retrieval
-from app.services.explanation import candidate_key, generate_explanations
-from app.services.hypothesis import HypothesisCluster, generate_hypotheses
+from app.agents.audio import analyze_input_song
+from app.agents.explanation import candidate_key, generate_explanations
+from app.agents.hypothesis import generate_hypotheses
+from app.agents.retrieval import run_retrieval
+from app.schemas.audio import AudioAnalysisResult
+from app.schemas.hypothesis import HypothesisCluster
+from app.schemas.retrieval import Candidate, EvidenceItem
 from app.services.selection import filter_input_songs, select_recommendations
 
 logger = logging.getLogger(__name__)

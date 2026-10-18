@@ -11,31 +11,13 @@ internal scores or provider mechanics as the explanation itself.
 import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel, Field
 
-from app.agents.retrieval import Candidate
 from app.llm import run_structured
-from app.resources import load_prompt
+from app.prompts import load_prompt
+from app.schemas.explanation import ExplanationResult
+from app.schemas.retrieval import Candidate
 
 logger = logging.getLogger(__name__)
-
-
-class RecommendationExplanation(BaseModel):
-    title: str
-    artist: str
-    explanation: str = Field(
-        description=(
-            "One or two human-readable sentences describing the strongest supporting "
-            "evidence for this recommendation. Never mention internal scores, provider "
-            "names as jargon, or implementation details — describe what the evidence "
-            "actually shows, e.g. 'shares the same soaring orchestral builds' or "
-            "'frequently recommended alongside your input song in fan discussions'."
-        )
-    )
-
-
-class ExplanationResult(BaseModel):
-    explanations: list[RecommendationExplanation]
 
 
 SYSTEM_PROMPT = load_prompt("explanation_system_prompt.txt")

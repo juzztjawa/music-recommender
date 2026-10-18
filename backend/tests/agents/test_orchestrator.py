@@ -9,9 +9,9 @@ modules' tests / SETUP.md live-testing.
 """
 
 from app.agents import orchestrator
-from app.agents.audio import AudioAnalysisResult
-from app.agents.retrieval import Candidate, EvidenceItem, RetrievalResult
-from app.services.hypothesis import HypothesisCluster, HypothesisResult
+from app.schemas.audio import AudioAnalysisResult
+from app.schemas.hypothesis import HypothesisCluster, HypothesisResult
+from app.schemas.retrieval import Candidate, EvidenceItem, RetrievalResult
 
 
 def make_candidate(title: str, artist: str, strength: float = 0.8) -> Candidate:

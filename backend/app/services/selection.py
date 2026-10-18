@@ -9,7 +9,7 @@ module only sorts and trims by it.
 
 import re
 
-from app.agents.retrieval import Candidate, EvidenceItem
+from app.schemas.retrieval import Candidate, EvidenceItem
 
 REMIX_STRENGTH_PENALTY = 0.85
 

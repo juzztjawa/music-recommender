@@ -18,19 +18,11 @@ import logging
 import tempfile
 from pathlib import Path
 
-from pydantic import BaseModel
-
 from app.clients.music_flamingo import caption_audio
 from app.clients.youtube_audio import download_audio
+from app.schemas.audio import AudioAnalysisResult
 
 logger = logging.getLogger(__name__)
-
-
-class AudioAnalysisResult(BaseModel):
-    query: str
-    caption: str | None = None
-    source_url: str | None = None
-    error: str | None = None
 
 
 async def analyze_input_song(query: str) -> AudioAnalysisResult:

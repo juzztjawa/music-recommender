@@ -15,31 +15,11 @@ representation, not user-facing copy.
 """
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel, Field
 
-from app.agents.audio import AudioAnalysisResult
 from app.llm import run_structured
-from app.resources import load_prompt
-
-
-class HypothesisCluster(BaseModel):
-    theme: str = Field(
-        description="Short internal label for this cluster, e.g. the shared song or style"
-    )
-    songs: list[str] = Field(
-        description="Which input song queries (verbatim) this cluster covers"
-    )
-    hypothesis: str = Field(
-        description=(
-            "A search-ready description of what kind of songs to find — this is handed "
-            "directly to the Retrieval & Evidence Agent as its search hypothesis"
-        )
-    )
-
-
-class HypothesisResult(BaseModel):
-    clusters: list[HypothesisCluster]
-
+from app.prompts import load_prompt
+from app.schemas.audio import AudioAnalysisResult
+from app.schemas.hypothesis import HypothesisResult
 
 SYSTEM_PROMPT = load_prompt("hypothesis_system_prompt.txt")
 

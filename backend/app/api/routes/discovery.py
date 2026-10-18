@@ -21,12 +21,14 @@ agents, superseded but not removed.
 
 from fastapi import APIRouter, Depends
 
-from app.agents.audio import AudioAnalysisResult, analyze_input_song
+from app.agents.audio import analyze_input_song
 from app.agents.orchestrator import DiscoveryResult, run_discovery
-from app.agents.retrieval import RetrievalResult, run_retrieval
+from app.agents.retrieval import run_retrieval
 from app.api.deps import enforce_discovery_rate_limit, get_current_identity
 from app.models.identity import Identity
+from app.schemas.audio import AudioAnalysisResult
 from app.schemas.discovery import AudioAnalysisRequest, DiscoverRequest, RetrievalRequest
+from app.schemas.retrieval import RetrievalResult
 from app.services.selection import select_recommendations
 
 router = APIRouter(dependencies=[Depends(enforce_discovery_rate_limit)])

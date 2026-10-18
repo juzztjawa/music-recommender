@@ -1,6 +1,6 @@
 """Unit tests for app.services.selection — FR-8, FR-9.2, FR-10.1-10.5, FR-11."""
 
-from app.agents.retrieval import Candidate, EvidenceItem
+from app.schemas.retrieval import Candidate, EvidenceItem
 from app.services.selection import (
     apply_artist_diversity,
     filter_input_songs,

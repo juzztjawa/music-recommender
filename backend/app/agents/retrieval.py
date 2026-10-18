@@ -18,7 +18,6 @@ installed langgraph==1.2.10/langchain==1.3.14 via the LangChain docs MCP).
 
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Annotated, Literal
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_tool_call
@@ -27,142 +26,16 @@ from langchain.messages import ToolMessage
 from langchain.tools.tool_node import ToolCallRequest
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
-from langchain_core.tools import BaseTool, tool
 from langgraph.types import Command
-from pydantic import BaseModel, Field
 
-from app.clients.lastfm import search_lastfm
-from app.clients.musicbrainz import search_musicbrainz
-from app.clients.reddit import search_reddit
-from app.clients.spotify import search_spotify
-from app.clients.youtube import search_youtube
-from app.clients.youtube_music import search_youtube_music
-from app.config import settings
 from app.llm import get_fallback_model, get_primary_model
-from app.resources import load_prompt
+from app.prompts import load_prompt
+from app.schemas.retrieval import RetrievalResult
+from app.tools.retrieval import available_tools
 
 logger = logging.getLogger(__name__)
 
 # --- Structured output schema (FR-7.1 provenance, FR-9 ranking) ---
-
-
-class EvidenceItem(BaseModel):
-    source: str = Field(description="Provider this evidence came from, e.g. 'spotify', 'reddit'")
-    evidence_type: str = Field(
-        description=(
-            "Kind of evidence, e.g. 'metadata_similarity', 'community_discussion', "
-            "'playlist_co_occurrence', 'genre_relationship', 'artist_relationship'"
-        )
-    )
-    summary: str = Field(description="Human-readable description of what this evidence shows")
-
-
-class Candidate(BaseModel):
-    title: str
-    artist: str
-    sources: list[str] = Field(description="Providers that surfaced or corroborated this candidate")
-    evidence: list[EvidenceItem]
-    recommendation_strength: float = Field(
-        ge=0.0,
-        le=1.0,
-        description=(
-            "Holistic strength per FR-9.2 — not probabilistic confidence. A single "
-            "high-quality source can outscore several weak ones."
-        ),
-    )
-    rationale: str = Field(description="Brief internal justification for the score")
-    variant: Literal["original", "cover", "live", "remix"] = Field(
-        default="original",
-        description=(
-            "Recording type per FR-10.3/10.4/10.5, judged from gathered evidence "
-            "(release type, title conventions, discussion). 'original' unless "
-            "evidence indicates otherwise."
-        ),
-    )
-
-
-class RetrievalResult(BaseModel):
-    candidates: list[Candidate]
-    providers_queried: list[str]
-    notes: str | None = Field(
-        default=None, description="Caveats, e.g. providers skipped due to missing credentials"
-    )
-
-
-# --- Tools (one per provider, per retrieval-agent-tool-schemas.json) ---
-
-
-@tool
-async def search_spotify_tool(
-    query: Annotated[str, Field(min_length=1, max_length=300, description="Search text")],
-    limit: Annotated[int, Field(ge=1, le=50, description="Max results")] = 20,
-) -> list[dict]:
-    """Search Spotify's catalog for candidate tracks matching a query or seed characteristics."""
-    return await search_spotify(query, limit)
-
-
-@tool
-async def search_youtube_tool(
-    query: Annotated[str, Field(min_length=1, max_length=300, description="Search text")],
-    limit: Annotated[int, Field(ge=1, le=25, description="Max results")] = 10,
-) -> list[dict]:
-    """Search YouTube for candidate tracks and community signal (views, comment counts)."""
-    return await search_youtube(query, limit)
-
-
-@tool
-async def search_youtube_music_tool(
-    query: Annotated[str, Field(min_length=1, max_length=300, description="Search text")],
-    limit: Annotated[int, Field(ge=1, le=25, description="Max results")] = 15,
-) -> list[dict]:
-    """Search YouTube Music for candidate tracks via the unofficial ytmusicapi client."""
-    return await search_youtube_music(query, limit)
-
-
-@tool
-async def search_reddit_tool(
-    query: Annotated[str, Field(min_length=1, max_length=300, description="Search text")],
-    subreddits: Annotated[
-        list[str] | None, Field(description="Optional subreddit allowlist to scope the search")
-    ] = None,
-    limit: Annotated[int, Field(ge=1, le=30, description="Max results")] = 15,
-) -> list[dict]:
-    """Search Reddit for community discussion evidence: threads and curated playlist mentions."""
-    return await search_reddit(query, subreddits, limit)
-
-
-@tool
-async def search_musicbrainz_tool(
-    query: Annotated[
-        str, Field(min_length=1, max_length=300, description="Title/artist to resolve")
-    ],
-) -> list[dict]:
-    """Resolve authoritative metadata and relationships for a candidate track."""
-    return await search_musicbrainz(query)
-
-
-@tool
-async def search_lastfm_tool(
-    artist: Annotated[str, Field(min_length=1, max_length=200, description="Artist name")],
-    track: Annotated[str | None, Field(max_length=200, description="Track title")] = None,
-) -> dict:
-    """Fetch tag/genre data and similar-artist signal for a candidate track from Last.fm."""
-    return await search_lastfm(artist, track)
-
-
-def available_tools() -> list[BaseTool]:
-    """Tools for providers with configured credentials. MusicBrainz and YouTube
-    Music need none, so they're always available."""
-    tools: list[BaseTool] = [search_musicbrainz_tool, search_youtube_music_tool]
-    if settings.spotify_client_id and settings.spotify_client_secret:
-        tools.append(search_spotify_tool)
-    if settings.youtube_api_key:
-        tools.append(search_youtube_tool)
-    if settings.reddit_client_id and settings.reddit_client_secret:
-        tools.append(search_reddit_tool)
-    if settings.lastfm_api_key:
-        tools.append(search_lastfm_tool)
-    return tools
 
 
 # create_agent (v1) no longer catches tool exceptions by default — that was
