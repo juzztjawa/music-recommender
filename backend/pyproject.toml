@@ -24,6 +24,7 @@ dependencies = [
     "musicbrainzngs>=0.7",
     "praw>=7.7",
     "langchain-core>=1.0",
+    "yt-dlp>=2024.8",
 ]
 
 [dependency-groups]
@@ -64,5 +65,5 @@ extend-immutable-calls = [
 
 [[tool.mypy.overrides]]
 # No published type stubs for these on PyPI.
-module = ["spotipy.*", "musicbrainzngs.*"]
+module = ["spotipy.*", "musicbrainzngs.*", "yt_dlp.*"]
 ignore_missing_imports = true

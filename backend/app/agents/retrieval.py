@@ -39,6 +39,7 @@ from app.clients.youtube import search_youtube
 from app.clients.youtube_music import search_youtube_music
 from app.config import settings
 from app.llm import get_fallback_model, get_primary_model
+from app.resources import load_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -187,33 +188,7 @@ async def _handle_tool_errors(
         )
 
 
-SYSTEM_PROMPT = """You are the Retrieval & Evidence Agent for a music recommendation system.
-
-Given a search hypothesis describing what kind of songs to find, you:
-1. Decide which of the available provider tools to call, and how extensively
-   (you don't have to call every tool, and you can call one more than once
-   with different queries).
-2. Gather non-audio evidence for each candidate you find: metadata, community
-   discussion, playlist co-occurrence, genre/artist relationships, tags,
-   similar-artist signal — whatever each provider surfaces.
-3. Aim for roughly 50-100 unique candidate songs before you stop, but this is
-   a target, not a hard rule — stop earlier if the hypothesis is narrow, or
-   if you're not finding new distinct candidates.
-4. Merge results that refer to the same song across providers into one
-   candidate with combined evidence and sources, rather than duplicating it.
-5. Score every candidate's `recommendation_strength` holistically (0.0-1.0):
-   weigh evidence quantity, quality, similarity to the hypothesis, and
-   popularity signals together. A candidate with one strong, high-quality
-   piece of evidence can outscore one with several weak signals. Do not
-   recommend a candidate supported by insufficient evidence just to hit a
-   target count.
-6. Every piece of evidence must record which provider it came from.
-7. Classify each candidate's `variant` from the evidence you gathered: "cover"
-   if it's a cover version, "live" if it's a live recording, "remix" if it's a
-   remix, otherwise "original". Default to "original" when evidence doesn't
-   clearly indicate otherwise.
-
-Return your findings using the required structured output."""
+SYSTEM_PROMPT = load_prompt("retrieval_system_prompt.txt")
 
 
 def _build_agent(model: BaseChatModel):
@@ -231,6 +206,10 @@ def _build_agent(model: BaseChatModel):
     )
 
 
+class RetrievalFailedError(Exception):
+    """Raised when neither model produces structured output for a hypothesis."""
+
+
 async def run_retrieval(hypothesis: str) -> RetrievalResult:
     """Run the Retrieval & Evidence Agent against a single search hypothesis.
 
@@ -238,13 +217,25 @@ async def run_retrieval(hypothesis: str) -> RetrievalResult:
     on failure — see app/llm.py for why this is a retry rather than
     LangChain's `.with_fallbacks()` (create_agent has the same `str |
     BaseChatModel` typing that rejected a fallback-wrapped runnable before).
+
+    A "failure" here includes the agent completing its run without ever
+    calling the structured-output tool — live-discovered: this model doesn't
+    reliably honor structured output (the same reason app/llm.py's
+    `run_structured` exists), and `ainvoke` returns a state dict with no
+    `structured_response` key rather than raising in that case, so a missing
+    key must be treated the same as a raised exception, not left to crash
+    with a raw KeyError.
     """
     messages = {"messages": [HumanMessage(content=hypothesis)]}
     try:
         agent = _build_agent(get_primary_model())
         result = await agent.ainvoke(messages)
+        if "structured_response" not in result:
+            raise RetrievalFailedError("primary model produced no structured output")
     except Exception:
         logger.exception("Primary model failed for retrieval, retrying with fallback")
         agent = _build_agent(get_fallback_model())
         result = await agent.ainvoke(messages)
+        if "structured_response" not in result:
+            raise RetrievalFailedError("fallback model produced no structured output") from None
     return result["structured_response"]

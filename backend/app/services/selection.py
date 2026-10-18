@@ -99,6 +99,26 @@ def filter_variants(
     return candidates
 
 
+def filter_input_songs(candidates: list[Candidate], input_queries: list[str]) -> list[Candidate]:
+    """Drop candidates that are just the input song(s) themselves.
+
+    Live-discovered issue (Phase 6): the Retrieval Agent has no notion of
+    "the song I was asked to find things like," so it happily returns the
+    input song itself as a top-scoring candidate — a tautology, not a
+    discovery (FR-5). Matches conservatively: both the candidate's normalized
+    title *and* normalized artist must appear as substrings of a normalized
+    input query, so this only ever drops genuine self-matches, never an
+    unrelated song that happens to share one or the other.
+    """
+    normalized_queries = [_normalize(q) for q in input_queries]
+
+    def is_input_song(candidate: Candidate) -> bool:
+        title, artist = _normalize(candidate.title), _normalize(candidate.artist)
+        return any(title in q and artist in q for q in normalized_queries)
+
+    return [c for c in candidates if not is_input_song(c)]
+
+
 def _sort_key(candidate: Candidate) -> float:
     if candidate.variant == "remix":
         return candidate.recommendation_strength * REMIX_STRENGTH_PENALTY

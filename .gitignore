@@ -29,3 +29,8 @@ build/
 
 # Logs
 *.log
+
+
+design/
+.claude/
+backend/.cache

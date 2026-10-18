@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_identity, get_db, get_redis
+from app.api.deps import enforce_request_link_rate_limit, get_current_identity, get_db, get_redis
 from app.clients.email import send_magic_link_email
 from app.config import settings
 from app.models.identity import Identity
@@ -21,7 +21,11 @@ from app.services.auth import (
 router = APIRouter()
 
 
-@router.post("/auth/request-link", status_code=200)
+@router.post(
+    "/auth/request-link",
+    status_code=200,
+    dependencies=[Depends(enforce_request_link_rate_limit)],
+)
 async def request_link(
     body: RequestLinkRequest,
     redis: Redis = Depends(get_redis),

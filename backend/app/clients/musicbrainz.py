@@ -49,5 +49,15 @@ def _search_recordings_sync(query: str, limit: int) -> list[dict]:
 
 
 async def search_musicbrainz(query: str, limit: int = 15) -> list[dict]:
-    """Resolve authoritative metadata for candidates matching `query`."""
-    return await asyncio.to_thread(_search_recordings_sync, query, limit)
+    """Resolve authoritative metadata for candidates matching `query`.
+
+    musicbrainzngs uses raw urllib with no timeout and retries up to 8 times
+    with a growing sleep on transient errors — live-discovered: a single
+    stalled/rate-limited call can otherwise block for minutes. Bounded here
+    with wait_for since asyncio.to_thread can't cancel a running thread —
+    this only bounds our own wait, not the underlying thread.
+    """
+    return await asyncio.wait_for(
+        asyncio.to_thread(_search_recordings_sync, query, limit),
+        timeout=settings.provider_call_timeout_seconds,
+    )

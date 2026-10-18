@@ -15,13 +15,23 @@ Callers implement fallback as a retry around the whole agent call instead;
 see `app/agents/retrieval.py`.
 """
 
+import logging
+from typing import cast
+
+from langchain_core.messages import BaseMessage
 from langchain_ollama import ChatOllama
+from pydantic import BaseModel
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 
 def _build_model(model_name: str) -> ChatOllama:
-    client_kwargs: dict = {}
+    # client_kwargs is passed straight through to the underlying httpx
+    # client (ollama.Client/AsyncClient) — ChatOllama sets no timeout of its
+    # own, so without this a single stalled call can hang a request forever.
+    client_kwargs: dict = {"timeout": settings.ollama_request_timeout_seconds}
     if settings.ollama_api_key:
         client_kwargs["headers"] = {"Authorization": f"Bearer {settings.ollama_api_key}"}
 
@@ -38,3 +48,29 @@ def get_primary_model() -> ChatOllama:
 
 def get_fallback_model() -> ChatOllama:
     return _build_model(settings.ollama_fallback_model)
+
+
+async def run_structured[T: BaseModel](messages: list[BaseMessage], schema: type[T]) -> T:
+    """Single non-agentic structured-output call (Hypothesis Generation,
+    Explanation Generation) — no tool loop, just a direct model invocation.
+
+    Tries the primary model, retrying once against the fallback on failure,
+    same pattern as `app/agents/retrieval.py`'s `run_retrieval`.
+    `method="function_calling"`: confirmed live (see retrieval.py's docstring
+    history) that the installed Ollama Cloud model doesn't reliably honor
+    `with_structured_output`'s default `json_schema` method.
+    """
+    try:
+        model = get_primary_model()
+        result = await model.with_structured_output(schema, method="function_calling").ainvoke(
+            messages
+        )
+    except Exception:
+        logger.exception("Primary model failed for structured call, retrying with fallback")
+        model = get_fallback_model()
+        result = await model.with_structured_output(schema, method="function_calling").ainvoke(
+            messages
+        )
+    if isinstance(result, dict):
+        return schema.model_validate(result)
+    return cast(T, result)

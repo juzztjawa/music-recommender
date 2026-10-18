@@ -3,6 +3,7 @@
 from app.agents.retrieval import Candidate, EvidenceItem
 from app.services.selection import (
     apply_artist_diversity,
+    filter_input_songs,
     filter_variants,
     merge_duplicates,
     select_recommendations,
@@ -204,3 +205,40 @@ def test_select_recommendations_full_pipeline_order():
     assert sum(1 for t in titles if t.lower() == "buddy holly") == 1  # merged, not duplicated
     weezer_count = sum(1 for c in selected if c.artist.lower() == "weezer")
     assert weezer_count <= 3  # artist cap enforced
+
+
+def test_filter_input_songs_drops_exact_self_match():
+    candidates = [
+        make_candidate("Bohemian Rhapsody", "Queen", 0.99),
+        make_candidate("The Prophet's Song", "Queen", 0.9),
+    ]
+
+    filtered = filter_input_songs(candidates, ["Bohemian Rhapsody Queen"])
+
+    titles = [c.title for c in filtered]
+    assert "Bohemian Rhapsody" not in titles
+    assert "The Prophet's Song" in titles
+
+
+def test_filter_input_songs_keeps_songs_sharing_only_artist():
+    # Sharing the artist alone (not the title too) must not be enough to drop it.
+    candidates = [make_candidate("Killer Queen", "Queen", 0.8)]
+
+    filtered = filter_input_songs(candidates, ["Bohemian Rhapsody Queen"])
+
+    assert len(filtered) == 1
+
+
+def test_filter_input_songs_handles_multiple_input_queries():
+    candidates = [
+        make_candidate("Bohemian Rhapsody", "Queen", 0.99),
+        make_candidate("Master of Puppets", "Metallica", 0.95),
+        make_candidate("Enter Sandman", "Metallica", 0.9),
+    ]
+
+    filtered = filter_input_songs(
+        candidates, ["Bohemian Rhapsody Queen", "Master of Puppets Metallica"]
+    )
+
+    titles = [c.title for c in filtered]
+    assert titles == ["Enter Sandman"]

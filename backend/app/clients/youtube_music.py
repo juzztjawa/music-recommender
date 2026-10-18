@@ -10,6 +10,8 @@ import asyncio
 
 from ytmusicapi import YTMusic
 
+from app.config import settings
+
 _client: YTMusic | None = None
 
 
@@ -38,5 +40,12 @@ def _search_sync(query: str, limit: int) -> list[dict]:
 
 
 async def search_youtube_music(query: str, limit: int = 15) -> list[dict]:
-    """Search YouTube Music for candidate tracks matching `query`."""
-    return await asyncio.to_thread(_search_sync, query, limit)
+    """Search YouTube Music for candidate tracks matching `query`.
+
+    ytmusicapi has no built-in request timeout, so this bounds our own wait
+    the same way app/clients/musicbrainz.py does.
+    """
+    return await asyncio.wait_for(
+        asyncio.to_thread(_search_sync, query, limit),
+        timeout=settings.provider_call_timeout_seconds,
+    )

@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     )
     ollama_primary_model: str = "deepseek-v4-flash:0731-cloud"
     ollama_fallback_model: str = "deepseek-v4-flash:0731-cloud"
+    ollama_request_timeout_seconds: float = Field(
+        default=60.0,
+        description=(
+            "Live-discovered: ChatOllama has no default timeout, so a single "
+            "stalled call (any of the several per request, across an agent's "
+            "tool loop) can hang a request indefinitely with no recovery."
+        ),
+    )
 
     # --- Retrieval providers (FR-6) ---
     # All optional: a provider without credentials is simply not offered to the
@@ -66,11 +74,28 @@ class Settings(BaseSettings):
 
     lastfm_api_key: str = ""
 
+    # musicbrainzngs and ytmusicapi have no built-in request timeout (the
+    # httpx-based clients above already set one directly) — this bounds the
+    # caller's wait around their asyncio.to_thread calls instead.
+    provider_call_timeout_seconds: float = 20.0
+
     # MusicBrainz needs no credentials, only a good-citizen User-Agent
     # (name/version/contact) per their API usage policy.
     musicbrainz_contact: str = "orchestra-recommender-dev@example.com"
 
     # YouTube Music (ytmusicapi) search works unauthenticated — no setting needed.
+
+    # --- Audio Analysis (FR-3.2/3.4, architecture.md §4/§9) ---
+    # Music Flamingo hosting (Modal/RunPod) is still an open call (§9 item 3)
+    # — unset by default. Absence must not block recommendations (FR-3.2), so
+    # this follows the same optional/"*NotConfigured" pattern as the
+    # retrieval providers above rather than being treated as required.
+    music_flamingo_endpoint_url: str = ""
+    music_flamingo_api_key: str = ""
+    music_flamingo_timeout_seconds: int = Field(
+        default=90,
+        description="Generous timeout for serverless GPU cold starts (~20-45s per §9)",
+    )
 
     # --- Auth (magic link + JWT) ---
     jwt_secret: str = Field(
@@ -80,6 +105,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
     magic_link_expire_minutes: int = 15
+
+    # --- Rate limiting (Phase 7, architecture.md §7) ---
+    # Discovery limits are shared across /discover, /retrieve, /analyze-audio
+    # since all three draw on the same YouTube quota + Ollama Cloud balance.
+    rate_limit_discovery_per_identity_per_hour: int = 5
+    rate_limit_discovery_global_per_day: int = 40
+    rate_limit_request_link_per_ip_per_hour: int = 5
 
     @model_validator(mode="after")
     def _forbid_default_jwt_secret_in_production(self) -> "Settings":

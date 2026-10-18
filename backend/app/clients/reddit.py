@@ -52,5 +52,12 @@ def _search_sync(query: str, subreddits: list[str] | None, limit: int) -> list[d
 async def search_reddit(
     query: str, subreddits: list[str] | None = None, limit: int = 15
 ) -> list[dict]:
-    """Search Reddit for discussion/curation evidence matching `query`."""
-    return await asyncio.to_thread(_search_sync, query, subreddits, limit)
+    """Search Reddit for discussion/curation evidence matching `query`.
+
+    PRAW has no guaranteed request timeout, so this bounds our own wait the
+    same way app/clients/musicbrainz.py does.
+    """
+    return await asyncio.wait_for(
+        asyncio.to_thread(_search_sync, query, subreddits, limit),
+        timeout=settings.provider_call_timeout_seconds,
+    )
