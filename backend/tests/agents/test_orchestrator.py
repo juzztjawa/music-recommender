@@ -105,3 +105,39 @@ async def test_divergent_songs_produce_separate_clusters(monkeypatch):
     assert themes == {"classical": "calm orchestral", "metal": "aggressive metal"}
     # Audio failed for both -> graceful degradation, hypothesis generation still ran.
     assert all(a.caption is None for a in result.audio_analysis)
+
+
+async def test_stream_emits_step_events_then_result(monkeypatch):
+    async def fake_analyze(query):
+        return AudioAnalysisResult(query=query, caption="c")
+
+    async def fake_hypotheses(songs, audio_results):
+        return HypothesisResult(
+            clusters=[HypothesisCluster(theme="rock", songs=songs, hypothesis="upbeat rock")]
+        )
+
+    async def fake_retrieval(hypothesis):
+        return RetrievalResult(
+            candidates=[make_candidate("Song A", "Artist A")], providers_queried=["musicbrainz"]
+        )
+
+    async def fake_explanations(hypothesis, candidates):
+        return {}
+
+    monkeypatch.setattr(orchestrator, "analyze_input_song", fake_analyze)
+    monkeypatch.setattr(orchestrator, "generate_hypotheses", fake_hypotheses)
+    monkeypatch.setattr(orchestrator, "run_retrieval", fake_retrieval)
+    monkeypatch.setattr(orchestrator, "generate_explanations", fake_explanations)
+
+    events = [e async for e in orchestrator.stream_discovery(["Song X"])]
+
+    steps = [(e["step"], e["status"]) for e in events if e["type"] == "step"]
+    assert steps == [
+        ("audio", "started"), ("audio", "done"),
+        ("hypothesis", "started"), ("hypothesis", "done"),
+        ("retrieval", "started"), ("retrieval", "done"),
+        ("selection", "started"), ("selection", "done"),
+        ("explanation", "started"), ("explanation", "done"),
+    ]  # fmt: skip
+    assert events[-1]["type"] == "result"
+    assert events[-1]["data"]["clusters"][0]["recommendations"][0]["title"] == "Song A"

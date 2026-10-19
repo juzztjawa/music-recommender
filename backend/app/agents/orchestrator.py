@@ -19,6 +19,8 @@ internally.
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
+from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel
@@ -184,3 +186,55 @@ async def run_discovery(
         )
     )
     return final_state["result"]
+
+
+# Node order, for announcing which step starts next.
+_STEPS = ["audio", "hypothesis", "retrieval", "selection", "explanation"]
+
+
+def _summarize(node: str, update: dict) -> dict[str, Any]:
+    """Small, UI-safe summary of what a finished node produced."""
+    if node == "audio":
+        return {
+            "songs": [
+                {"query": r.query, "captioned": r.caption is not None, "error": r.error}
+                for r in update["audio_results"]
+            ]
+        }
+    if node == "hypothesis":
+        clusters = update["hypothesis_clusters"]
+        return {"clusters": [{"theme": c.theme, "songs": c.songs} for c in clusters]}
+    if node in ("retrieval", "selection"):
+        return {"candidates_per_cluster": [len(c) for c in update["cluster_candidates"]]}
+    return {}
+
+
+async def stream_discovery(
+    songs: list[str],
+    *,
+    include_live: bool = False,
+    include_covers: bool = False,
+    target_count: int = 10,
+) -> AsyncIterator[dict[str, Any]]:
+    """Same flow as `run_discovery`, yielding generic envelope events
+    (`step` started/done, then a final `result`) as each node completes.
+    Errors propagate to the caller, which turns them into an `error` event."""
+    yield {"type": "step", "step": _STEPS[0], "status": "started"}
+    result: DiscoveryResult | None = None
+    async for chunk in _graph.astream(
+        DiscoveryState(
+            songs=songs,
+            include_live=include_live,
+            include_covers=include_covers,
+            target_count=target_count,
+        ),
+        stream_mode="updates",
+    ):
+        for node, update in chunk.items():
+            yield {"type": "step", "step": node, "status": "done", "data": _summarize(node, update)}
+            if node == "explanation":
+                result = update["result"]
+            else:
+                yield {"type": "step", "step": _STEPS[_STEPS.index(node) + 1], "status": "started"}
+    if result is not None:
+        yield {"type": "result", "data": result.model_dump(mode="json")}
