@@ -129,9 +129,10 @@ async def retrieve_candidates(
         str,
         Field(
             min_length=1,
-            max_length=500,
+            max_length=1500,
             description="Search-ready description of the kind of songs to find: mood, "
-            "orchestration, pacing, texture, style, era — concrete enough to search on",
+            "orchestration, pacing, texture, style, era — concrete enough to search on. "
+            "Keep it under about 600 characters.",
         ),
     ],
     input_songs: Annotated[

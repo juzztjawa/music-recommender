@@ -17,7 +17,7 @@ The restructure is verified with a scripted model through the real loop, tools, 
 Postgres, but never with `glm-5.3-flash:cloud`. Its tool-calling and prompt-following are the top
 risk (doc 2). Also still unbuilt: cached song analyses/evidence (SRS §17), Apple Music links, audio
 upload, YouTube playlist export (optional), an explicit "insufficient evidence" UX beyond the agent's
-reply (FR-17), and enforcement of the ~60 s budget (only a 600 s cap exists).
+reply (FR-17), and enforcement of the ~60 s budget (no wall-clock limit by default; the retrieval agent is bounded by a tool-call budget).
 
 ## Never run end-to-end by me
 The whole pipeline was exercised live in earlier phases (per PROJECT_STATUS), but in this

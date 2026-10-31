@@ -27,3 +27,33 @@ async def handle_tool_errors(
             tool_call_id=request.tool_call["id"],
             status="error",
         )
+
+
+def tool_budget(limit: int):
+    """Middleware that lets an agent make at most `limit` tool calls.
+
+    Past the limit a call is not executed; the agent gets a message telling it
+    to stop searching and answer with what it has. Create one per agent run —
+    the counter lives in the closure.
+    """
+    used = 0
+
+    @wrap_tool_call
+    async def budget(
+        request: ToolCallRequest,
+        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
+    ) -> ToolMessage | Command:
+        nonlocal used
+        used += 1
+        if used > limit:
+            return ToolMessage(
+                content=(
+                    f"Tool budget of {limit} calls is used up. Do not search any more: "
+                    "return your final structured answer now with the candidates you already have."
+                ),
+                tool_call_id=request.tool_call["id"],
+                status="error",
+            )
+        return await handler(request)
+
+    return budget

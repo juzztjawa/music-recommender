@@ -15,6 +15,7 @@ surprises you, that's where to open the actual code.
 | 6 | [Risks & open items](06-risks-and-open-items.md) | What is **not** built, known weak spots, decisions only you can make |
 | 7 | [Observability](07-observability.md) | MLflow + event log: how to see an agent run |
 | 8 | [Chat layer](08-chat-layer.md) · [its handoff note](chat-layer-handoff.md) | Threads and the earlier intent design (partly superseded by the supervisor) |
+| – | [Modal handoff](modal-handoff.md) | Brief for hosting the audio-captioning model on Modal |
 | – | [Frontend handoff](frontend-handoff.md) · [API contract](api-contract.md) | Brief and API reference for the agent redesigning the UI |
 
 **To run it locally: [SETUP.md](SETUP.md)** (kept up to date as setup changes).

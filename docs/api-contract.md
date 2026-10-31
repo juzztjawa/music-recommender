@@ -54,8 +54,8 @@ Exceeding the **message** limit → HTTP 429 *before* streaming starts: body
 same shape as every other 429). Exceeding the **discovery** budget → no HTTP error (the stream has
 already started): an `error` SSE event `{"type":"error","message":"Discovery limit reached.","retry_after":<seconds>}`
 and the stream ends. Any other failure → `error` event with a generic message and no `retry_after`.
-Expect turns that search to take minutes (observed >5 min with the current model); the server stops a
-turn after 600 s.
+Expect turns that search to take minutes (observed >5 min with the current model). There is no server
+time limit by default; the retrieval step is bounded by a tool-call budget instead.
 
 Dev only: `POST /discovery/discover` and `/discovery/discover/stream` run the same agent statelessly
 (body `{message, include_live, include_covers, target_count}`; no thread, no history).

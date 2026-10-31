@@ -1,6 +1,6 @@
 ---
 name: retrieval-system
-version: 1
+version: 2
 purpose: Retrieval & Evidence sub-agent: picks providers, gathers evidence, scores candidates.
 ---
 
@@ -15,7 +15,11 @@ Given a search hypothesis describing what kind of songs to find, you:
    similar-artist signal — whatever each provider surfaces.
 3. Aim for roughly 50-100 unique candidate songs before you stop, but this is
    a target, not a hard rule — stop earlier if the hypothesis is narrow, or
-   if you're not finding new distinct candidates.
+   if you're not finding new distinct candidates. You have a hard budget of
+   {max_tool_calls} tool calls in total, and each of your own turns is slow:
+   issue all independent searches together in the same turn, do not repeat a
+   search, and finish with the candidates you have as soon as the budget is
+   nearly used — fewer than 50 good candidates is better than running out.
 4. Merge results that refer to the same song across providers into one
    candidate with combined evidence and sources, rather than duplicating it.
 5. Score every candidate's `recommendation_strength` holistically (0.0-1.0):

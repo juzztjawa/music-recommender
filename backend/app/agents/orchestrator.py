@@ -215,13 +215,22 @@ async def stream_discovery(
             await queue.put(None)
 
     producer = asyncio.create_task(produce())
-    deadline = time.monotonic() + settings.discovery_timeout_seconds
+    limit = settings.discovery_timeout_seconds
+    deadline = time.monotonic() + limit if limit else None
     started: dict[str, float] = {}
     reply = ""
+    timed_out = False
     try:
         while True:
-            remaining = deadline - time.monotonic()
-            chunk = await asyncio.wait_for(queue.get(), timeout=max(remaining, 0.001))
+            try:
+                if deadline is None:
+                    chunk = await queue.get()
+                else:
+                    remaining = max(deadline - time.monotonic(), 0.001)
+                    chunk = await asyncio.wait_for(queue.get(), timeout=remaining)
+            except TimeoutError:
+                timed_out = True
+                break
             if chunk is None:
                 break
             if isinstance(chunk, Exception):
@@ -253,6 +262,12 @@ async def stream_discovery(
     finally:
         producer.cancel()
 
+    if timed_out:
+        # Never fail silently: say what happened and keep whatever finished.
+        reply = (
+            "This is taking longer than the time limit allows, so I stopped here. "
+            "Try again, or ask for something narrower."
+        )
     result = assemble_result(run, reply)
     yield {"type": "message", "text": result.reply}
     yield {"type": "result", "data": result.model_dump(mode="json")}

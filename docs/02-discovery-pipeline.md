@@ -46,7 +46,7 @@ message ─► Supervisor (LLM, system prompt = the flow)
   `interaction_events` (`payload.thread_id`), no extra table. The route loads the last 6 turns and the
   supervisor reads them via `get_session_history` and skips songs already recommended (FR-14/15). It is
   read only inside the thread that wrote it (no cross-session effect).
-- **Limits:** recursion limit 40 (≈20 tool rounds) and a 600 s wall-clock cap per request (live runs were seen taking >5 min).
+- **Limits:** supervisor recursion limit 40 (≈20 tool rounds); the **retrieval sub-agent has its own budget** — at most 24 tool calls (then it is told to answer with what it has) and 8 model rounds as a hard backstop (`retrieval_max_*` in config). There is **no wall-clock limit by default**; `DISCOVERY_TIMEOUT_SECONDS` is optional and, if set, ends a request gracefully with a message and whatever finished (never an error). Why: live, with no budget the retrieval agent kept searching for 10 minutes without answering; ~91% of that time was model latency, the searches took under a second each.
 - **Model fallback:** if the primary model fails *before any output*, retry once on the fallback
   model; after output has started it raises (replaying would repeat tool calls).
 - **Streaming:** `agent.astream(stream_mode="updates")` is translated to `tool started/done/error`,
@@ -58,10 +58,11 @@ message ─► Supervisor (LLM, system prompt = the flow)
 - **Never run against the real LLM yet.** Tested with a scripted model through the real agent loop,
   tools, run state, routes, Redis and Postgres. Whether `glm-5.3-flash:cloud` follows the prompt's
   flow, calls tools with valid arguments and recovers from errors is **unproven** — run one real
-  request and read the trace. Keep the 600 s / recursion caps in mind if it loops.
+  request and read the trace. If it loops, the retrieval budget and recursion limits are what stop it.
 - Is it acceptable that the agent can, in principle, skip a stage? The prompt forbids it and tools
   refuse out-of-order calls, but nothing forces a stage. If it misbehaves, the fix is a stricter
   prompt first, a code guard second.
+- **Retrieval restarts:** if the retrieval agent fails and the fallback model is the *same* model, it is not retried (a retry replayed the whole search from zero and doubled the run). A distinct fallback model gets one retry.
 - Cost/latency: more LLM turns than the fixed pipeline (each tool round is a model call).
 - `already_recommended` matching is by normalised title + artist; a different release of the same
   song can slip through.

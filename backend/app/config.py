@@ -138,12 +138,19 @@ class Settings(BaseSettings):
     # Swap in Resend or SMTP config here before real testers go live.
 
     # --- Supervisor agent ---
-    # Hard stop for one discovery request (NFR-1 targets ~60s; this is the
-    # backstop, not the goal). Live runs with the current model were observed
-    # taking over 5 minutes, so it is set well above that (env-overridable).
-    # The recursion limit bounds the agent's model<->tools loop.
-    discovery_timeout_seconds: float = 600.0
+    # Optional wall-clock limit for one discovery request. Off by default: runs
+    # are bounded by the step budgets below instead. If set and exceeded, the
+    # request ends gracefully with whatever finished plus an explanatory
+    # message (it never errors out).
+    discovery_timeout_seconds: float | None = None
+    # Bounds the supervisor's model<->tools loop.
     agent_recursion_limit: int = 40
+    # Retrieval sub-agent budget (FR-6.2). Live, with no budget it kept issuing
+    # searches for 10 minutes without ever answering; each model round is slow,
+    # the searches are not. After `retrieval_max_tool_calls` calls it is told to
+    # finish; `retrieval_max_model_rounds` is the hard backstop.
+    retrieval_max_tool_calls: int = 24
+    retrieval_max_model_rounds: int = 8
 
     # --- Observability (Phase 7b) ---
     # Empty URI disables MLflow tracing entirely; the DB event log (FR-19)

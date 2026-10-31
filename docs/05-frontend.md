@@ -37,7 +37,7 @@ for the single-use link). Removed: `Discover.tsx`, `History.tsx`, `Progress.tsx`
 - **No fixed step list.** The backend is a tool-calling agent: events are `tool` started/done/error keyed
   by `call_id` (they can overlap). Known tool names get friendly labels; unknown ones still render.
   A tool `error` is shown as "hit a snag, carrying on" (the audio tool always does today — normal).
-- **Slow runs.** Searches take minutes (server cap 600 s). The activity header shows elapsed time and,
+- **Slow runs.** Searches take minutes (there is no server time limit; the retrieval agent is bounded by a tool-call budget instead). The activity header shows elapsed time and,
   after 45 s, a "this takes a few minutes" hint. Nothing assumes a quick finish.
 - **Limits.** 429 before streaming (message limit) and the `error` event with `retry_after` (discovery
   budget) both show "Try again in about N min" with no retry button; other errors offer **Try again**.

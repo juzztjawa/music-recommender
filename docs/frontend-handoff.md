@@ -57,7 +57,7 @@ Also true today:
 - Audio captioning is **not hosted** (`MUSIC_FLAMINGO_ENDPOINT_URL` unset), so every audio step
   reports an error and the agent continues from titles. Show it unobtrusively, not as a failure.
 - A run takes tens of seconds to a couple of minutes (not measured with the current model);
-  streaming progress is essential. Hard stop at 600 s (`DISCOVERY_TIMEOUT_SECONDS`).
+  streaming progress is essential. There is no server time limit by default; if one is ever set, the turn ends with a normal `message` + `result` explaining it, not an error.
 - The agent can answer without recommendations (nothing found / couldn't identify a link): `clusters`
   empty and `reply` explains. Render `reply` as the assistant's message in every case.
 - Rate limit: 5 discoveries/hour per user, 40/day globally → HTTP 429 with `Retry-After`.

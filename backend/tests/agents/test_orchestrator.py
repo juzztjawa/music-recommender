@@ -285,3 +285,25 @@ async def test_explanations_fall_back_when_model_returns_no_structured_output(mo
     monkeypatch.setattr(explanation, "run_structured", none_result)
 
     assert await explanation.generate_explanations("h", [make_candidate("A", "B")]) == {}
+
+
+async def test_time_limit_ends_gracefully_with_a_message_not_an_error(monkeypatch, specialists):
+    """If an optional wall-clock limit is set and hit, the request still ends with a reply."""
+    import asyncio
+
+    async def slow_retrieval(hypothesis):
+        await asyncio.sleep(5)
+
+    monkeypatch.setattr(tools, "run_retrieval", slow_retrieval)
+    monkeypatch.setattr(orchestrator.settings, "discovery_timeout_seconds", 0.3)
+    script(monkeypatch, *FULL_FLOW)
+
+    events = [e async for e in orchestrator.stream_discovery("songs like X")]
+
+    assert [e["type"] for e in events[-2:]] == ["message", "result"]
+    assert "longer than the time limit" in events[-1]["data"]["reply"]
+    assert events[-1]["data"]["clusters"] == []
+
+
+async def test_no_time_limit_by_default():
+    assert orchestrator.settings.discovery_timeout_seconds is None
