@@ -20,6 +20,7 @@ from pathlib import Path
 
 from app.clients.music_flamingo import caption_audio
 from app.clients.youtube_audio import download_audio
+from app.config import settings
 from app.schemas.audio import AudioAnalysisResult
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,12 @@ logger = logging.getLogger(__name__)
 async def analyze_input_song(query: str) -> AudioAnalysisResult:
     """Resolve `query` (e.g. "Bohemian Rhapsody Queen") to YouTube audio,
     caption it, and discard the audio before returning."""
+    # Without a captioning backend a download would be pure waste (~10 s and a
+    # YouTube request per song) — the audio can't be analysed either way.
+    if not settings.music_flamingo_endpoint_url:
+        return AudioAnalysisResult(
+            query=query, error="audio analysis is not configured on this server"
+        )
     with tempfile.TemporaryDirectory(prefix="orchestra-audio-") as tmp:
         try:
             downloaded = await download_audio(query, Path(tmp))
