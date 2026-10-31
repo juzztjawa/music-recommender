@@ -54,3 +54,19 @@ def _search_sync(query: str, limit: int) -> list[dict]:
 async def search_spotify(query: str, limit: int = 20) -> list[dict]:
     """Search Spotify's catalog for candidate tracks matching `query`."""
     return await asyncio.to_thread(_search_sync, query, limit)
+
+
+def _track_sync(url: str) -> dict:
+    item = _get_client().track(url)  # spotipy accepts a URL, URI or bare id
+    return {
+        "source": "spotify",
+        "title": item.get("name"),
+        "artist": ", ".join(a["name"] for a in item.get("artists", [])),
+        "album": item.get("album", {}).get("name"),
+        "url": item.get("external_urls", {}).get("spotify"),
+    }
+
+
+async def get_spotify_track(url: str) -> dict:
+    """Metadata for one Spotify track URL."""
+    return await asyncio.to_thread(_track_sync, url)

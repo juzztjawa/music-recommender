@@ -1,0 +1,163 @@
+"""Create a Spotify playlist from a stored discovery batch (FR-16).
+
+Endpoints follow Spotify's February 2026 API: `POST /me/playlists` and
+`POST /playlists/{id}/items` (the old `/users/{id}/playlists` and `/tracks`
+variants are gone). Our recommendations are (title, artist) pairs, not Spotify
+ids, so each is searched for; unmatched songs are reported, never guessed.
+"""
+
+import asyncio
+import logging
+import re
+from typing import Any
+
+import httpx
+from pydantic import BaseModel
+
+from app.services.spotify_oauth import SpotifyAuthError
+
+logger = logging.getLogger(__name__)
+
+API = "https://api.spotify.com/v1"
+ADD_BATCH = 100  # Spotify's per-request maximum
+SEARCH_CONCURRENCY = 5
+MAX_RATE_LIMIT_RETRIES = 2
+MAX_RETRY_WAIT_SECONDS = 5
+
+
+class ExportOutcome(BaseModel):
+    playlist_url: str
+    playlist_name: str
+    added: int
+    not_found: list[str]
+
+
+def _norm(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+def _artist_matches(wanted: str, found_artists: list[str]) -> bool:
+    """Loose on purpose (featured artists, "The X" variants), but an unrelated
+    artist must not pass — a wrong song in a playlist is worse than a gap."""
+    w = _norm(wanted)
+    if not w:
+        return True
+    return any(w in _norm(a) or _norm(a) in w for a in found_artists if _norm(a))
+
+
+def unique_songs(result: dict[str, Any]) -> list[tuple[str, str]]:
+    seen: set[tuple[str, str]] = set()
+    songs: list[tuple[str, str]] = []
+    for cluster in result.get("clusters", []):
+        for rec in cluster.get("recommendations", []):
+            key = (_norm(rec["title"]), _norm(rec["artist"]))
+            if key not in seen:
+                seen.add(key)
+                songs.append((rec["title"], rec["artist"]))
+    return songs
+
+
+def default_playlist_name(result: dict[str, Any]) -> str:
+    inputs: list[str] = []
+    for cluster in result.get("clusters", []):
+        for s in cluster.get("input_songs", []):
+            if s not in inputs:
+                inputs.append(s)
+    if not inputs:  # description-only request: name it after the first theme
+        inputs = [c["theme"] for c in result.get("clusters", [])[:1] if c.get("theme")]
+    name = "Orchestra: " + (" + ".join(inputs) if inputs else "recommendations")
+    return name[:100]
+
+
+async def _request(
+    client: httpx.AsyncClient, method: str, url: str, token: str, **kwargs: Any
+) -> httpx.Response:
+    for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
+        resp = await client.request(
+            method, url, headers={"Authorization": f"Bearer {token}"}, **kwargs
+        )
+        if resp.status_code == 429 and attempt < MAX_RATE_LIMIT_RETRIES:
+            wait = min(int(resp.headers.get("Retry-After", "1")), MAX_RETRY_WAIT_SECONDS)
+            await asyncio.sleep(wait)
+            continue
+        break
+    if resp.status_code in (401, 403):
+        raise SpotifyAuthError(
+            f"Spotify rejected the request ({resp.status_code}). Reconnect Spotify; in "
+            "development mode your account must also be on the app's user allowlist."
+        )
+    resp.raise_for_status()
+    return resp
+
+
+async def find_track_uri(
+    client: httpx.AsyncClient, token: str, title: str, artist: str
+) -> str | None:
+    t, a = title.replace('"', " "), artist.replace('"', " ")
+    queries = [f'track:"{t}" artist:"{a}"', f"{t} {a}"]
+    for q in queries:
+        resp = await _request(
+            client, "GET", f"{API}/search", token, params={"q": q, "type": "track", "limit": 5}
+        )
+        for item in resp.json().get("tracks", {}).get("items", []):
+            artists = [a["name"] for a in item.get("artists", [])]
+            if _norm(item.get("name", "")) == _norm(title) and _artist_matches(artist, artists):
+                return item["uri"]
+    return None
+
+
+async def export_to_spotify(
+    token: str,
+    result: dict[str, Any],
+    name: str | None = None,
+    client: httpx.AsyncClient | None = None,
+) -> ExportOutcome:
+    songs = unique_songs(result)
+    if not songs:
+        raise ValueError("This batch has no recommendations to export")
+
+    owns_client = client is None
+    client = client or httpx.AsyncClient(timeout=20)
+    try:
+        sem = asyncio.Semaphore(SEARCH_CONCURRENCY)
+
+        async def match(song: tuple[str, str]) -> str | None:
+            async with sem:
+                return await find_track_uri(client, token, *song)
+
+        uris = await asyncio.gather(*(match(s) for s in songs))
+        found = [u for u in uris if u]
+        not_found = [f"{t} — {a}" for (t, a), u in zip(songs, uris, strict=True) if not u]
+        if not found:
+            raise ValueError("None of the recommended songs could be found on Spotify")
+
+        playlist_name = (name or default_playlist_name(result))[:100]
+        created = await _request(
+            client,
+            "POST",
+            f"{API}/me/playlists",
+            token,
+            json={
+                "name": playlist_name,
+                "description": "Generated by Orchestra",
+                "public": False,
+            },
+        )
+        playlist = created.json()
+        for i in range(0, len(found), ADD_BATCH):
+            await _request(
+                client,
+                "POST",
+                f"{API}/playlists/{playlist['id']}/items",
+                token,
+                json={"uris": found[i : i + ADD_BATCH]},
+            )
+        return ExportOutcome(
+            playlist_url=playlist["external_urls"]["spotify"],
+            playlist_name=playlist_name,
+            added=len(found),
+            not_found=not_found,
+        )
+    finally:
+        if owns_client:
+            await client.aclose()

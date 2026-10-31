@@ -37,7 +37,13 @@ async def request_link(
     await send_magic_link_email(body.email, magic_link_url)
 
     # Always 200, regardless of anything about the email — avoids enumeration.
-    return {"message": "If that email is valid, a magic link has been sent."}
+    response = {"message": "If that email is valid, a magic link has been sent."}
+    # ENVIRONMENT=test only: hand the link back so the UI can offer it directly
+    # (there is no SMTP server). Anyone who can call this endpoint could then
+    # sign in as any email, so it must never be on outside `test`.
+    if settings.environment == "test":
+        response["dev_link"] = magic_link_url
+    return response
 
 
 @router.post("/auth/verify", response_model=TokenResponse)
@@ -51,8 +57,8 @@ async def verify(
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     identity = await get_or_create_identity(db, email)
-    await create_session(db, identity.id)
-    access_token = create_access_token(identity.id)
+    session = await create_session(db, identity.id)
+    access_token = create_access_token(identity.id, session.id)
 
     return TokenResponse(access_token=access_token)
 

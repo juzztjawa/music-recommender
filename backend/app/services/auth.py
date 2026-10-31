@@ -63,9 +63,11 @@ async def create_session(db: AsyncSession, identity_id: uuid.UUID) -> Session:
     return session
 
 
-def create_access_token(identity_id: uuid.UUID) -> str:
+def create_access_token(identity_id: uuid.UUID, session_id: uuid.UUID | None = None) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_expire_minutes)
     claims = {"sub": str(identity_id), "exp": expire}
+    if session_id is not None:
+        claims["sid"] = str(session_id)
     return jwt.encode(claims, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
@@ -82,4 +84,13 @@ def decode_access_token(token: str) -> uuid.UUID | None:
     try:
         return uuid.UUID(sub)
     except ValueError:
+        return None
+
+
+def decode_session_id(token: str) -> uuid.UUID | None:
+    """The login session this token was minted for (None for older tokens)."""
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        return uuid.UUID(payload["sid"])
+    except (JWTError, KeyError, ValueError):
         return None

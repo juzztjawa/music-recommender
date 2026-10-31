@@ -52,12 +52,14 @@ def _download_sync(query: str, dest_dir: Path) -> DownloadedAudio:
         "extractor_args": {"youtube": {"player_client": ["android"], "formats": ["missing_pot"]}},
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        search_info = ydl.extract_info(f"ytsearch1:{query}", download=False)
-        entries = (search_info or {}).get("entries") or []
-        if not entries:
-            raise YoutubeAudioDownloadError(f"No results for query: {query!r}")
-
-        entry = entries[0]
+        if query.startswith(("http://", "https://")):
+            entry = ydl.extract_info(query, download=False) or {}
+        else:
+            search_info = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            entries = (search_info or {}).get("entries") or []
+            if not entries:
+                raise YoutubeAudioDownloadError(f"No results for query: {query!r}")
+            entry = entries[0]
         duration = entry.get("duration")
         if duration and duration > _MAX_DURATION_SECONDS:
             raise YoutubeAudioDownloadError(
@@ -88,3 +90,21 @@ async def download_audio(query: str, dest_dir: Path) -> DownloadedAudio:
     """Resolve `query` to a YouTube video and download its audio as mp3 into
     `dest_dir`. Raises `YoutubeAudioDownloadError` on no match or a bad match."""
     return await asyncio.to_thread(_download_sync, query, dest_dir)
+
+
+def _metadata_sync(url: str) -> dict:
+    opts = {"quiet": True, "no_warnings": True, "noplaylist": True, "skip_download": True}
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        info = ydl.extract_info(url, download=False) or {}
+    return {
+        "source": "youtube",
+        "title": info.get("track") or info.get("title"),
+        "artist": info.get("artist") or info.get("creator") or info.get("uploader"),
+        "album": info.get("album"),
+        "url": info.get("webpage_url") or url,
+    }
+
+
+async def get_youtube_metadata(url: str) -> dict:
+    """Title/artist of a YouTube / YouTube Music video URL (no download)."""
+    return await asyncio.to_thread(_metadata_sync, url)

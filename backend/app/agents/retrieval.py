@@ -17,17 +17,13 @@ installed langgraph==1.2.10/langchain==1.3.14 via the LangChain docs MCP).
 """
 
 import logging
-from collections.abc import Awaitable, Callable
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import wrap_tool_call
 from langchain.agents.structured_output import ToolStrategy
-from langchain.messages import ToolMessage
-from langchain.tools.tool_node import ToolCallRequest
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
-from langgraph.types import Command
 
+from app.agents.tool_errors import handle_tool_errors
 from app.llm import get_fallback_model, get_primary_model
 from app.prompts import load_prompt
 from app.schemas.retrieval import RetrievalResult
@@ -38,30 +34,7 @@ logger = logging.getLogger(__name__)
 # --- Structured output schema (FR-7.1 provenance, FR-9 ranking) ---
 
 
-# create_agent (v1) no longer catches tool exceptions by default — that was
-# ToolNode's implicit behavior under the now-deprecated create_react_agent.
-# Without this, a single provider hiccup (rate limit, network blip) would
-# crash the whole retrieval run instead of just costing that one tool call.
-#
-# Must be async: run_retrieval invokes the agent via ainvoke(), and
-# LangGraph's ToolNode requires an async awrap_tool_call implementation in an
-# async run — a sync-only @wrap_tool_call raises NotImplementedError there
-# (confirmed live), it isn't auto-adapted from sync.
-@wrap_tool_call
-async def _handle_tool_errors(
-    request: ToolCallRequest,
-    handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
-) -> ToolMessage | Command:
-    try:
-        return await handler(request)
-    except Exception as e:  # noqa: BLE001 - deliberately broad, see docstring above
-        return ToolMessage(
-            content=f"Tool error ({request.tool_call['name']}): {e}",
-            tool_call_id=request.tool_call["id"],
-        )
-
-
-SYSTEM_PROMPT = load_prompt("retrieval_system_prompt.txt")
+SYSTEM_PROMPT = load_prompt("retrieval_system_prompt.md")
 
 
 def _build_agent(model: BaseChatModel):
@@ -74,7 +47,7 @@ def _build_agent(model: BaseChatModel):
         model=model,
         tools=available_tools(),
         system_prompt=SYSTEM_PROMPT,
-        middleware=[_handle_tool_errors],
+        middleware=[handle_tool_errors],
         response_format=ToolStrategy(RetrievalResult),
     )
 

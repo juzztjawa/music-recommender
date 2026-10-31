@@ -242,3 +242,17 @@ def test_filter_input_songs_handles_multiple_input_queries():
 
     titles = [c.title for c in filtered]
     assert titles == ["Enter Sandman"]
+
+
+def test_filter_excluded_drops_artists_and_repeats():
+    from app.services.selection import filter_excluded
+    from tests.agents.test_orchestrator import make_candidate
+
+    cands = [
+        make_candidate("Hoshi", "Kevin Penkin & Mili"),
+        make_candidate("Other", "Someone Else"),
+        make_candidate("Repeat", "Band"),
+    ]
+    kept = filter_excluded(cands, ["Kevin Penkin"], ["Repeat Band"])
+    assert [c.title for c in kept] == ["Other"]
+    assert filter_excluded(cands, [], []) == cands

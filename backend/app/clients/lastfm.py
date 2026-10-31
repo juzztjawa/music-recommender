@@ -49,9 +49,7 @@ async def search_lastfm(artist: str, track: str | None = None) -> dict:
     similar_data = similar_resp.json()
 
     tags = [t["name"] for t in tags_data.get("toptags", {}).get("tag", [])]
-    similar_artists = [
-        a["name"] for a in similar_data.get("similarartists", {}).get("artist", [])
-    ]
+    similar_artists = [a["name"] for a in similar_data.get("similarartists", {}).get("artist", [])]
 
     return {
         "source": "lastfm",

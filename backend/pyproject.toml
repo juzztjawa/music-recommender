@@ -25,6 +25,8 @@ dependencies = [
     "praw>=7.7",
     "langchain-core>=1.0",
     "yt-dlp>=2024.8",
+    "mlflow-tracing>=3.17.2",
+    "cryptography>=50.0.0",
 ]
 
 [dependency-groups]

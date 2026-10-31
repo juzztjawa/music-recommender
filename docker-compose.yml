@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: orchestra-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: orchestra
       POSTGRES_PASSWORD: orchestra
@@ -10,6 +11,9 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Runs only on a fresh volume; for an existing one create the DB by hand:
+      #   docker exec orchestra-postgres psql -U orchestra -c "CREATE DATABASE mlflow"
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U orchestra"]
       interval: 5s
@@ -19,6 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: orchestra-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -27,5 +32,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # LLM trace + eval UI (http://localhost:5000). Traces go in the `mlflow`
+  # Postgres database; payload artifacts in the named volume. Version must
+  # match mlflow-tracing in backend/pyproject.toml.
+  mlflow:
+    image: python:3.13-slim
+    container_name: orchestra-mlflow
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "pip install --no-cache-dir mlflow==3.17.2 psycopg2-binary &&
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri postgresql+psycopg2://orchestra:orchestra@postgres:5432/mlflow
+      --serve-artifacts --artifacts-destination /mlflow/artifacts"
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+
 volumes:
   postgres_data:
+  mlflow_artifacts:

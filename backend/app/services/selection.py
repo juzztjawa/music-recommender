@@ -62,9 +62,7 @@ def merge_duplicates(candidates: list[Candidate]) -> list[Candidate]:
                     seen_evidence.add(dedup_key)
                     evidence.append(item)
 
-        merged.append(
-            best.model_copy(update={"sources": sources, "evidence": evidence})
-        )
+        merged.append(best.model_copy(update={"sources": sources, "evidence": evidence}))
 
     return merged
 
@@ -87,9 +85,7 @@ def filter_variants(
         candidates = [c for c in candidates if c.variant != "live"]
 
     if not include_covers:
-        titles_with_original = {
-            _normalize(c.title) for c in candidates if c.variant == "original"
-        }
+        titles_with_original = {_normalize(c.title) for c in candidates if c.variant == "original"}
         candidates = [
             c
             for c in candidates
@@ -117,6 +113,31 @@ def filter_input_songs(candidates: list[Candidate], input_queries: list[str]) ->
         return any(title in q and artist in q for q in normalized_queries)
 
     return [c for c in candidates if not is_input_song(c)]
+
+
+def filter_excluded(
+    candidates: list[Candidate],
+    exclude_artists: list[str],
+    exclude_songs: list[str],
+) -> list[Candidate]:
+    """Drop candidates the user (or the conversation so far) ruled out.
+
+    Chat refinements ("a different artist", "don't repeat songs") reach the
+    pipeline as exclusions. Artists match when the normalized excluded name is
+    contained in the candidate's normalized artist string (so "Kevin Penkin"
+    also catches "Kevin Penkin & Mili"); songs match on exact normalized
+    (title, artist) so an unrelated song with the same title survives.
+    """
+    artists = [a for a in (_normalize(a) for a in exclude_artists) if a]
+    songs = {_normalize(s) for s in exclude_songs}
+
+    def excluded(c: Candidate) -> bool:
+        artist = _normalize(c.artist)
+        if any(a in artist for a in artists):
+            return True
+        return f"{_normalize(c.title)} {artist}" in songs
+
+    return [c for c in candidates if not excluded(c)]
 
 
 def _sort_key(candidate: Candidate) -> float:

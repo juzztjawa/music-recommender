@@ -20,16 +20,14 @@ from app.schemas.retrieval import Candidate
 logger = logging.getLogger(__name__)
 
 
-SYSTEM_PROMPT = load_prompt("explanation_system_prompt.txt")
+SYSTEM_PROMPT = load_prompt("explanation_system_prompt.md")
 
 
 def candidate_key(title: str, artist: str) -> str:
     return f"{title.strip().lower()}::{artist.strip().lower()}"
 
 
-async def generate_explanations(
-    hypothesis: str, candidates: list[Candidate]
-) -> dict[str, str]:
+async def generate_explanations(hypothesis: str, candidates: list[Candidate]) -> dict[str, str]:
     """Return `{candidate_key(title, artist): explanation}` for `candidates`.
 
     Callers should fall back to `Candidate.rationale` for any candidate
@@ -51,7 +49,11 @@ async def generate_explanations(
     except Exception:
         logger.exception("Explanation generation failed for hypothesis %r", hypothesis)
         return {}
+    if result is None:
+        # run_structured returns None when the model answers in prose instead of
+        # calling the function (seen live). Same fallback as a failure: the
+        # caller uses each candidate's own rationale.
+        logger.warning("Explanation model returned no structured output")
+        return {}
 
-    return {
-        candidate_key(e.title, e.artist): e.explanation for e in result.explanations
-    }
+    return {candidate_key(e.title, e.artist): e.explanation for e in result.explanations}

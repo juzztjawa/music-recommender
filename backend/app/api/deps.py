@@ -1,5 +1,7 @@
 """Shared FastAPI dependencies (DI)."""
 
+import uuid
+
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
@@ -10,15 +12,18 @@ from app.config import settings
 from app.db import get_db
 from app.models.identity import Identity
 from app.redis import get_redis
-from app.services.auth import decode_access_token
+from app.services.auth import decode_access_token, decode_session_id
 from app.services.rate_limit import enforce_rate_limit
 
 __all__ = [
+    "check_discovery_budget",
+    "enforce_chat_rate_limit",
     "enforce_discovery_rate_limit",
     "enforce_request_link_rate_limit",
     "get_current_identity",
     "get_db",
     "get_redis",
+    "get_session_id",
 ]
 
 _bearer_scheme = HTTPBearer()
@@ -40,16 +45,18 @@ async def get_current_identity(
     return identity
 
 
-async def enforce_discovery_rate_limit(
-    identity: Identity = Depends(get_current_identity),
-    redis: Redis = Depends(get_redis),
-) -> None:
-    """Shared across /discover, /retrieve, /analyze-audio — they all draw on
-    the same YouTube quota and Ollama Cloud balance, so the budget is shared
-    too, not tracked per route."""
+async def get_session_id(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+) -> uuid.UUID | None:
+    """Login session of the caller, for grouping traces. Auth itself is
+    still `get_current_identity`."""
+    return decode_session_id(credentials.credentials)
+
+
+async def check_discovery_budget(redis: Redis, identity_id: uuid.UUID) -> None:
     await enforce_rate_limit(
         redis,
-        f"ratelimit:identity:{identity.id}:discovery",
+        f"ratelimit:identity:{identity_id}:discovery",
         limit=settings.rate_limit_discovery_per_identity_per_hour,
         window_seconds=3600,
     )
@@ -59,6 +66,28 @@ async def enforce_discovery_rate_limit(
         limit=settings.rate_limit_discovery_global_per_day,
         window_seconds=86400,
     )
+
+
+async def enforce_chat_rate_limit(
+    identity: Identity = Depends(get_current_identity),
+    redis: Redis = Depends(get_redis),
+) -> None:
+    await enforce_rate_limit(
+        redis,
+        f"ratelimit:identity:{identity.id}:chat",
+        limit=settings.rate_limit_chat_per_identity_per_hour,
+        window_seconds=3600,
+    )
+
+
+async def enforce_discovery_rate_limit(
+    identity: Identity = Depends(get_current_identity),
+    redis: Redis = Depends(get_redis),
+) -> None:
+    """Shared across /discover, /retrieve, /analyze-audio — they all draw on
+    the same YouTube quota and Ollama Cloud balance, so the budget is shared
+    too, not tracked per route."""
+    await check_discovery_budget(redis, identity.id)
 
 
 async def enforce_request_link_rate_limit(

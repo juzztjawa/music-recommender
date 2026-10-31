@@ -5,6 +5,7 @@ backend directory). Never hardcode secrets here.
 """
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,7 +22,9 @@ class Settings(BaseSettings):
 
     # --- App ---
     app_name: str = "Project Orchestra"
-    environment: str = "development"  # development | production
+    # development: link only in the backend log. test: the sign-in link is also
+    # returned to the UI (no email server needed). production: never exposed.
+    environment: Literal["development", "test", "production"] = "development"
     debug: bool = True
 
     # --- Database (PostgreSQL) ---
@@ -48,8 +51,8 @@ class Settings(BaseSettings):
         default="",
         description="Ollama Cloud API key (empty for local Ollama)",
     )
-    ollama_primary_model: str = "deepseek-v4-flash:0731-cloud"
-    ollama_fallback_model: str = "deepseek-v4-flash:0731-cloud"
+    ollama_primary_model: str = "glm-5.3-flash:cloud"
+    ollama_fallback_model: str = "glm-5.3-flash:cloud"
     ollama_request_timeout_seconds: float = Field(
         default=60.0,
         description=(
@@ -73,6 +76,11 @@ class Settings(BaseSettings):
     reddit_user_agent: str = "orchestra-recommender/0.1"
 
     lastfm_api_key: str = ""
+
+    # Playlist export (FR-16) uses the same Spotify app but the Authorization
+    # Code flow. Spotify rejects `localhost` redirect URIs: use the loopback IP
+    # and register this exact string in the Spotify developer dashboard.
+    spotify_redirect_uri: str = "http://127.0.0.1:8000/api/spotify/callback"
 
     # musicbrainzngs and ytmusicapi have no built-in request timeout (the
     # httpx-based clients above already set one directly) — this bounds the
@@ -112,6 +120,8 @@ class Settings(BaseSettings):
     rate_limit_discovery_per_identity_per_hour: int = 5
     rate_limit_discovery_global_per_day: int = 40
     rate_limit_request_link_per_ip_per_hour: int = 5
+    # Chat messages (intent parsing only; a discovery additionally draws on the budget above).
+    rate_limit_chat_per_identity_per_hour: int = 60
 
     @model_validator(mode="after")
     def _forbid_default_jwt_secret_in_production(self) -> "Settings":
@@ -126,6 +136,20 @@ class Settings(BaseSettings):
     email_from: str = "orchestra@example.com"
     # Dev stub logs the link instead of sending it (see app/clients/email.py).
     # Swap in Resend or SMTP config here before real testers go live.
+
+    # --- Supervisor agent ---
+    # Hard stop for one discovery request (NFR-1 targets ~60s; this is the
+    # backstop, not the goal). Live runs with the current model were observed
+    # taking over 5 minutes, so it is set well above that (env-overridable).
+    # The recursion limit bounds the agent's model<->tools loop.
+    discovery_timeout_seconds: float = 600.0
+    agent_recursion_limit: int = 40
+
+    # --- Observability (Phase 7b) ---
+    # Empty URI disables MLflow tracing entirely; the DB event log (FR-19)
+    # is always on.
+    mlflow_tracking_uri: str = ""
+    mlflow_experiment_name: str = "orchestra"
 
     # --- CORS ---
     cors_origins: list[str] = ["http://localhost:5173"]

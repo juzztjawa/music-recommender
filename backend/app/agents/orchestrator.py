@@ -1,41 +1,43 @@
-"""Orchestrator — the Supervisor (architecture.md §2/§3, FR-2/FR-4/FR-12).
+"""Orchestrator — the Supervisor (architecture.md §2/§3).
 
-Owns query understanding + hypothesis generation, delegates to the Audio
-Analysis Agent (Phase 5) and Retrieval & Evidence Agent (Phase 3) for the two
-specialist steps, applies deterministic Selection (Phase 4), and runs
-Explanation Generation — assembling the final per-cluster recommendation
-batch. This is the "Orchestrator graph" from the roadmap: the flow itself.
+A tool-calling agent. It receives the user's message (free text, links,
+descriptions, follow-ups) plus the thread's history, and decides which tools to
+call. The stage order — understand, identify, listen, hypothesise, retrieve,
+select, explain, reply — is written in its system prompt
+(`prompts/orchestrator_system_prompt.md`), not hardcoded here; the tools
+(`app/tools/orchestrator.py`) enforce preconditions and keep the bulky data in
+a per-request `RunContext`.
 
-Built as a LangGraph `StateGraph` rather than a plain async pipeline function
-even though the flow is strictly sequential with no fan-out (architecture.md
-§5) — Phase 7's planned SSE streaming (`stream_mode=[...]`) is LangGraph-native
-and needs a compiled graph to stream from. Concurrency *within* a stage (e.g.
-running retrieval for several hypothesis clusters at once) isn't the dynamic
-branching/skipping the "no fan-out" decision rules out — the stage sequence
-itself never branches; only independent items within one stage run in
-parallel, matching how the Retrieval Agent already fans out to providers
-internally.
+The `DiscoveryResult` is assembled from that state, never from the model's
+text, so the recommendations shown are exactly what the deterministic stages
+produced. The model's final message is only the conversational `reply`.
 """
 
 import asyncio
 import logging
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
-from langgraph.graph import END, START, StateGraph
+from langchain.agents import create_agent
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from pydantic import BaseModel
 
-from app.agents.audio import analyze_input_song
-from app.agents.explanation import candidate_key, generate_explanations
-from app.agents.hypothesis import generate_hypotheses
-from app.agents.retrieval import run_retrieval
+from app.agents.explanation import candidate_key
+from app.agents.run_context import ClusterState, RunContext, current_run
+from app.agents.tool_errors import handle_tool_errors
+from app.config import settings
+from app.llm import get_fallback_model, get_primary_model
+from app.observability import TraceContext, TraceRecorder, root_span
+from app.prompts import load_prompt
 from app.schemas.audio import AudioAnalysisResult
-from app.schemas.hypothesis import HypothesisCluster
-from app.schemas.retrieval import Candidate, EvidenceItem
-from app.services.selection import filter_input_songs, select_recommendations
+from app.schemas.retrieval import EvidenceItem
+from app.services.threads import ThreadTurn
+from app.tools.orchestrator import orchestrator_tools
 
 logger = logging.getLogger(__name__)
 
+SYSTEM_PROMPT = load_prompt("orchestrator_system_prompt.md")
 
 # --- Output shape ---
 
@@ -58,183 +60,209 @@ class DiscoveryCluster(BaseModel):
 
 
 class DiscoveryResult(BaseModel):
+    # Set by the route that logs the run; feedback and export refer to run_id.
+    run_id: str | None = None
+    thread_id: str | None = None
+    # The supervisor's conversational message (what it understood / what it did).
+    reply: str = ""
     audio_analysis: list[AudioAnalysisResult]
     clusters: list[DiscoveryCluster]
 
 
-# --- Graph state ---
+# --- Helpers ---
 
 
-class DiscoveryState(BaseModel):
-    songs: list[str]
-    include_live: bool = False
-    include_covers: bool = False
-    target_count: int = 10
-    audio_results: list[AudioAnalysisResult] = []
-    hypothesis_clusters: list[HypothesisCluster] = []
-    # Reassigned in place across stages: raw candidates per cluster after
-    # retrieval, then trimmed to the final selected batch after selection.
-    cluster_candidates: list[list[Candidate]] = []
-    result: DiscoveryResult | None = None
+def _text(content: Any) -> str:
+    """Message content is a str or a list of blocks, depending on the provider."""
+    if isinstance(content, str):
+        return content
+    return "".join(b.get("text", "") for b in content if isinstance(b, dict))
 
 
-# --- Nodes ---
-
-
-async def _audio_node(state: DiscoveryState) -> dict:
-    results = await asyncio.gather(*(analyze_input_song(song) for song in state.songs))
-    return {"audio_results": list(results)}
-
-
-async def _hypothesis_node(state: DiscoveryState) -> dict:
-    hypotheses = await generate_hypotheses(state.songs, state.audio_results)
-    return {"hypothesis_clusters": hypotheses.clusters}
-
-
-async def _retrieval_node(state: DiscoveryState) -> dict:
-    results = await asyncio.gather(
-        *(run_retrieval(cluster.hypothesis) for cluster in state.hypothesis_clusters)
-    )
-    return {"cluster_candidates": [r.candidates for r in results]}
-
-
-async def _selection_node(state: DiscoveryState) -> dict:
-    selected = [
-        select_recommendations(
-            filter_input_songs(candidates, cluster.songs),
-            include_live=state.include_live,
-            include_covers=state.include_covers,
-            target_count=state.target_count,
-        )
-        for cluster, candidates in zip(
-            state.hypothesis_clusters, state.cluster_candidates, strict=True
-        )
-    ]
-    return {"cluster_candidates": selected}
-
-
-async def _explanation_node(state: DiscoveryState) -> dict:
-    explanation_maps = await asyncio.gather(
-        *(
-            generate_explanations(cluster.hypothesis, candidates)
-            for cluster, candidates in zip(
-                state.hypothesis_clusters, state.cluster_candidates, strict=True
+def _cluster_result(cluster: ClusterState) -> DiscoveryCluster:
+    explanations = cluster.explanations or {}
+    return DiscoveryCluster(
+        theme=cluster.theme,
+        hypothesis=cluster.hypothesis,
+        input_songs=cluster.input_songs,
+        recommendations=[
+            RecommendedSong(
+                title=c.title,
+                artist=c.artist,
+                sources=c.sources,
+                evidence=c.evidence,
+                recommendation_strength=c.recommendation_strength,
+                variant=c.variant,
+                # The agent's own rationale if the explanation call failed or skipped a song.
+                explanation=explanations.get(candidate_key(c.title, c.artist), c.rationale),
             )
-        )
+            for c in cluster.selected or []
+        ],
     )
 
-    clusters = [
-        DiscoveryCluster(
-            theme=cluster.theme,
-            hypothesis=cluster.hypothesis,
-            input_songs=cluster.songs,
-            recommendations=[
-                RecommendedSong(
-                    title=c.title,
-                    artist=c.artist,
-                    sources=c.sources,
-                    evidence=c.evidence,
-                    recommendation_strength=c.recommendation_strength,
-                    variant=c.variant,
-                    explanation=explanations.get(candidate_key(c.title, c.artist), c.rationale),
-                )
-                for c in candidates
-            ],
+
+def assemble_result(run: RunContext, reply: str) -> DiscoveryResult:
+    # Only clusters that went through selection count; a retrieval the agent
+    # never finished is not a recommendation.
+    clusters = [_cluster_result(c) for c in run.clusters.values() if c.selected is not None]
+    if not reply.strip():
+        reply = (
+            "Here is what I found."
+            if any(c.recommendations for c in clusters)
+            else "I couldn't put together recommendations with enough evidence this time. "
+            "Could you tell me another song you like, or describe the feel you want?"
         )
-        for cluster, candidates, explanations in zip(
-            state.hypothesis_clusters, state.cluster_candidates, explanation_maps, strict=True
-        )
+    return DiscoveryResult(reply=reply, audio_analysis=run.audio_results, clusters=clusters)
+
+
+def _user_input(message: str, run: RunContext) -> dict[str, list]:
+    lines = [
+        f"User message: {message}",
+        f"Defaults (apply unless the message says otherwise): include_live={run.include_live}, "
+        f"include_covers={run.include_covers}, target_count={run.target_count}.",
     ]
-    return {"result": DiscoveryResult(audio_analysis=state.audio_results, clusters=clusters)}
-
-
-def _build_graph():
-    graph = StateGraph(DiscoveryState)
-    graph.add_node("audio", _audio_node)
-    graph.add_node("hypothesis", _hypothesis_node)
-    graph.add_node("retrieval", _retrieval_node)
-    graph.add_node("selection", _selection_node)
-    graph.add_node("explanation", _explanation_node)
-    graph.add_edge(START, "audio")
-    graph.add_edge("audio", "hypothesis")
-    graph.add_edge("hypothesis", "retrieval")
-    graph.add_edge("retrieval", "selection")
-    graph.add_edge("selection", "explanation")
-    graph.add_edge("explanation", END)
-    return graph.compile()
-
-
-_graph = _build_graph()
-
-
-async def run_discovery(
-    songs: list[str],
-    *,
-    include_live: bool = False,
-    include_covers: bool = False,
-    target_count: int = 10,
-) -> DiscoveryResult:
-    """Run the full song-based discovery flow (architecture.md §6): audio
-    analysis -> hypothesis generation -> retrieval -> selection ->
-    explanation. `songs` is 1-5 free-text input-song queries (FR-1.2)."""
-    final_state = await _graph.ainvoke(
-        DiscoveryState(
-            songs=songs,
-            include_live=include_live,
-            include_covers=include_covers,
-            target_count=target_count,
+    if run.history:
+        lines.append(
+            f"This thread has {len(run.history)} earlier turn(s); call get_session_history if the "
+            "message may refer to them."
         )
+    return {"messages": [HumanMessage(content="\n".join(lines))]}
+
+
+def _build_agent(model):
+    return create_agent(
+        model=model,
+        tools=orchestrator_tools(),
+        system_prompt=SYSTEM_PROMPT,
+        middleware=[handle_tool_errors],
     )
-    return final_state["result"]
 
 
-# Node order, for announcing which step starts next.
-_STEPS = ["audio", "hypothesis", "retrieval", "selection", "explanation"]
+def _config(trace: TraceContext | None) -> dict[str, Any]:
+    config: dict[str, Any] = {"recursion_limit": settings.agent_recursion_limit}
+    if trace:
+        config["callbacks"] = [TraceRecorder(trace)]
+    return config
 
 
-def _summarize(node: str, update: dict) -> dict[str, Any]:
-    """Small, UI-safe summary of what a finished node produced."""
-    if node == "audio":
-        return {
-            "songs": [
-                {"query": r.query, "captioned": r.caption is not None, "error": r.error}
-                for r in update["audio_results"]
-            ]
-        }
-    if node == "hypothesis":
-        clusters = update["hypothesis_clusters"]
-        return {"clusters": [{"theme": c.theme, "songs": c.songs} for c in clusters]}
-    if node in ("retrieval", "selection"):
-        return {"candidates_per_cluster": [len(c) for c in update["cluster_candidates"]]}
-    return {}
+def _brief(content: Any, limit: int = 200) -> str:
+    text = _text(content) if not isinstance(content, str) else content
+    return text if len(text) <= limit else text[:limit] + "…"
+
+
+# --- Streaming ---
 
 
 async def stream_discovery(
-    songs: list[str],
+    message: str,
     *,
+    history: list[ThreadTurn] | None = None,
     include_live: bool = False,
     include_covers: bool = False,
     target_count: int = 10,
+    trace: TraceContext | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
-    """Same flow as `run_discovery`, yielding generic envelope events
-    (`step` started/done, then a final `result`) as each node completes.
-    Errors propagate to the caller, which turns them into an `error` event."""
-    yield {"type": "step", "step": _STEPS[0], "status": "started"}
+    """Run the supervisor and yield events as it works:
+
+    - ``tool`` started/done/error, one pair per tool call (a ``call_id`` links them)
+    - ``message`` the supervisor's final reply
+    - ``result`` the assembled `DiscoveryResult`
+
+    Errors propagate to the caller, which turns them into an ``error`` event.
+    """
+    history = history or []
+    run = RunContext(
+        include_live=include_live,
+        include_covers=include_covers,
+        target_count=target_count,
+        history=history,
+        already_recommended={
+            candidate_key(title, artist)
+            for turn in history
+            for title, artist, _ in turn.recommended
+        },
+    )
+    queue: asyncio.Queue[dict | Exception | None] = asyncio.Queue()
+
+    # The agent runs in its own task so the MLflow root span opens and closes
+    # in one task (it can't stay open across this generator's yields), and so
+    # `current_run` is set in a context the tools' tasks inherit.
+    async def produce() -> None:
+        current_run.set(run)
+        emitted = False
+        try:
+            with root_span(trace, message):
+                for attempt, get_model in enumerate((get_primary_model, get_fallback_model)):
+                    try:
+                        agent = _build_agent(get_model())
+                        async for chunk in agent.astream(
+                            _user_input(message, run),
+                            config=_config(trace),
+                            stream_mode="updates",
+                        ):
+                            emitted = True
+                            await queue.put(chunk)
+                        break
+                    except Exception:
+                        # Retry on the fallback model only if nothing has run yet;
+                        # replaying a half-finished run would repeat its tool calls.
+                        if emitted or attempt == 1:
+                            raise
+                        logger.exception("Primary model failed before any output; trying fallback")
+        except Exception as e:  # noqa: BLE001 - handed to the consumer to re-raise
+            await queue.put(e)
+        finally:
+            await queue.put(None)
+
+    producer = asyncio.create_task(produce())
+    deadline = time.monotonic() + settings.discovery_timeout_seconds
+    started: dict[str, float] = {}
+    reply = ""
+    try:
+        while True:
+            remaining = deadline - time.monotonic()
+            chunk = await asyncio.wait_for(queue.get(), timeout=max(remaining, 0.001))
+            if chunk is None:
+                break
+            if isinstance(chunk, Exception):
+                raise chunk
+            for update in chunk.values():
+                for msg in update.get("messages", []) if isinstance(update, dict) else []:
+                    if isinstance(msg, AIMessage):
+                        for call in msg.tool_calls:
+                            started[call["id"]] = time.monotonic()
+                            yield {
+                                "type": "tool",
+                                "status": "started",
+                                "name": call["name"],
+                                "call_id": call["id"],
+                                "args": call["args"],
+                            }
+                        if not msg.tool_calls:
+                            reply = _text(msg.content)
+                    elif isinstance(msg, ToolMessage):
+                        t0 = started.pop(msg.tool_call_id, time.monotonic())
+                        yield {
+                            "type": "tool",
+                            "status": "error" if msg.status == "error" else "done",
+                            "name": msg.name,
+                            "call_id": msg.tool_call_id,
+                            "duration_ms": round((time.monotonic() - t0) * 1000),
+                            "summary": _brief(msg.content),
+                        }
+    finally:
+        producer.cancel()
+
+    result = assemble_result(run, reply)
+    yield {"type": "message", "text": result.reply}
+    yield {"type": "result", "data": result.model_dump(mode="json")}
+
+
+async def run_discovery(message: str, **kwargs: Any) -> DiscoveryResult:
+    """Same run as `stream_discovery`, returning only the final result."""
     result: DiscoveryResult | None = None
-    async for chunk in _graph.astream(
-        DiscoveryState(
-            songs=songs,
-            include_live=include_live,
-            include_covers=include_covers,
-            target_count=target_count,
-        ),
-        stream_mode="updates",
-    ):
-        for node, update in chunk.items():
-            yield {"type": "step", "step": node, "status": "done", "data": _summarize(node, update)}
-            if node == "explanation":
-                result = update["result"]
-            else:
-                yield {"type": "step", "step": _STEPS[_STEPS.index(node) + 1], "status": "started"}
-    if result is not None:
-        yield {"type": "result", "data": result.model_dump(mode="json")}
+    async for event in stream_discovery(message, **kwargs):
+        if event["type"] == "result":
+            result = DiscoveryResult.model_validate(event["data"])
+    assert result is not None  # stream_discovery always ends with a result or raises
+    return result
