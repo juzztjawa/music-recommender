@@ -12,7 +12,7 @@ discovery.
 - **Backend:** FastAPI + LangChain/LangGraph (Supervisor pattern) + SQLAlchemy + PostgreSQL + Redis
 - **Frontend:** React SPA (Vite)
 - **Agents:** Orchestrator (supervisor) → Retrieval & Evidence (tool-calling) + Audio (isolated) → deterministic Selection → single-call Explanation
-- **LLM:** Ollama Cloud (`deepseek-v4-flash:0731-cloud`)
+- **LLM:** Ollama Cloud (`glm-5.3-flash:cloud`)
 - **Audio understanding:** Music Flamingo 7B on serverless GPU (Modal / RunPod)
 
 See `architecture.md` and `srs-01.md`–`srs-04.md` for the full design and requirements.
@@ -48,7 +48,7 @@ cp .env.example .env   # then fill in real values
 uv run main.py
 ```
 
-See `SETUP.md` for full setup, credentials, and how to test what's built so far.
+See `docs/SETUP.md` for the full local setup guide (env vars, URLs, troubleshooting).
 
 ### 3. Frontend
 
@@ -60,4 +60,4 @@ npm run dev
 
 ## Status
 
-See `PROJECT_STATUS.md` for the current phase-by-phase implementation log.
+See `docs/` for review-oriented explanations of the code and its design decisions (start at `docs/README.md`), and `PROJECT_STATUS.md` for the phase-by-phase implementation log.
