@@ -1,0 +1,53 @@
+[project]
+name = "orchestra-modal-app"
+version = "0.1.0"
+description = "Music Flamingo audio-captioning endpoint on Modal (deployed separately from backend/)"
+requires-python = ">=3.11,<3.14"
+# Deploy-time tooling only (what `uv run modal ...` needs on your laptop).
+dependencies = ["modal"]
+
+[dependency-groups]
+# Everything the *container* runs. The Dockerfile installs exactly this group from uv.lock
+# (`uv sync --frozen --only-group serve`), so image contents == the lockfile. Never `pip install`.
+serve = [
+  "vllm==0.33.0",          # inference engine: continuous batching, paged KV cache, prefix caching
+  "librosa",               # audio decode / resample to 16 kHz
+  "soundfile",
+  "python-multipart",      # FastAPI multipart upload
+  "accelerate",            # only the baseline HF engine (device_map) needs it
+  "modal",                 # Modal's container runtime imports this inside the image
+]
+# Local tests + benchmark client (no GPU needed).
+dev = [
+  "pytest",
+  "pytest-asyncio",
+  "httpx",
+  "fastapi",
+  "python-multipart",
+  "librosa",
+  "soundfile",
+  "numpy",
+]
+
+[tool.uv]
+# vLLM only ships Linux wheels; resolve for x86_64 Linux only so `uv lock` succeeds.
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+markers = ["live: hits the deployed endpoint (costs GPU time); needs MUSIC_FLAMINGO_* env vars"]
+addopts = "-m 'not live'"
+
+# Same lint rules as backend/pyproject.toml, so the whole repo follows one standard (CODING_STANDARDS.md).
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["bench/audio"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.File"]

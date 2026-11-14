@@ -1,0 +1,6 @@
+bench/audio/
+bench/results/*.tmp
+.token
+.venv/
+__pycache__/
+.proxy-token.json

@@ -38,16 +38,17 @@ the backend in the same step (see §9).
 - Optional header `Authorization: Bearer {MUSIC_FLAMINGO_API_KEY}` (sent only when that key is set).
   Require it on the service.
 - The file is an **mp3, 192 kbps**, produced by ffmpeg from the YouTube audio of one track. The
-  backend caps the source at 15 minutes (≈ 20 MB); typical tracks are 3–6 minutes (≈ 3–10 MB).
+  backend caps the source at ~29 minutes (= the endpoint's 40 MB upload limit at 192 kbps); typical tracks are 3–6 minutes (≈ 3–10 MB).
 
 **Response** — `200` with JSON `{"caption": "<non-empty text>"}`.
 - Anything non-2xx raises on the client (`raise_for_status`).
 - A missing or empty `caption` is treated as a failure (`RuntimeError`).
 - Unauthorized should be `401`; unreadable audio `4xx`; do not return a `200` with an error body.
 
-**Timeout** — the client waits `MUSIC_FLAMINGO_TIMEOUT_SECONDS` (default **90 s**) for the whole
-call: cold start (~20–45 s expected) plus inference. Measure both and report; if cold start + inference
-can exceed it, say so rather than raising the number silently.
+**Timeout** — the client waits `MUSIC_FLAMINGO_TIMEOUT_SECONDS` (default **600 s**) for the whole
+call: cold start plus inference. Measured cold starts ran 73-179 s (most of the slow one was waiting for
+Modal to find a free L40S), and a warm caption takes about 10-13 s. Modal answers a web request that
+runs longer than ~150 s with a 303 redirect to a result URL, so the client follows redirects.
 
 **Caption content** — it goes into an LLM's context for up to five songs per message, so keep it to
 a few hundred tokens of descriptive prose: instrumentation, tempo, energy, dynamics, mood,
@@ -95,13 +96,13 @@ modal_app/
 2. **Measured and written down:** cold-start latency, warm latency, and a five-songs-at-once test.
 3. Backend end to end: put the URL/key in `backend/.env`, restart, then
    `POST /api/discovery/analyze-audio {"query": "Bohemian Rhapsody Queen"}` (needs a JWT; see
-   `docs/SETUP.md`) returns a real `caption`; then one chat message through `/api/chat/stream` shows the
+   `SETUP.md`) returns a real `caption`; then one chat message through `/api/chat/stream` shows the
    captions in the `analyze_audio` tool results (MLflow at http://localhost:5000, or the
    `interaction_events` table).
 4. Failure path: with the endpoint stopped or a wrong token, `analyze-audio` returns `error` set and a
    full chat run still completes.
 5. No audio persisted (describe how you checked); licence conclusion and cost per request in the README.
-6. `docs/SETUP.md` updated (new env values, how to deploy/redeploy, troubleshooting) with a changelog
+6. `SETUP.md` updated (new env values, how to deploy/redeploy, troubleshooting) with a changelog
    line.
 
 ## 7. Rules
@@ -120,7 +121,7 @@ Code (read these first):
 - `backend/app/clients/music_flamingo.py` — the client; defines the contract in §3.
 - `backend/app/agents/audio.py` — download → caption → discard; never raises; skips when unconfigured.
 - `backend/app/tools/orchestrator.py` (`analyze_audio`) — how the supervisor calls it.
-- `backend/app/clients/youtube_audio.py` — how the mp3 is produced (yt-dlp + ffmpeg, 15-min cap).
+- `backend/app/clients/youtube_audio.py` — how the mp3 is produced (yt-dlp + ffmpeg, duration cap derived from the 40 MB upload limit).
 - `backend/app/config.py` (search `music_flamingo`) and `backend/.env.example`.
 - `backend/tests/agents/test_audio.py` — the behaviour the backend guarantees.
 
@@ -130,7 +131,7 @@ Docs:
 - `design/PROJECT_STATUS.md` §8 (Phase 5, the audio agent) and §9 (deployment intent).
 - `design/srs-02.md` FR-3.2–3.4, FR-7.3; `design/srs-03.md` NFR-1 (latency), NFR-3 (graceful degradation).
 - `docs/02-discovery-pipeline.md` (how the supervisor uses audio), `docs/06-risks-and-open-items.md`,
-  `docs/SETUP.md` (§4 config, §6 seeing what a run did, troubleshooting).
+  `SETUP.md` (§4 config, §6 seeing what a run did, troubleshooting).
 
 ## 9. State of verification (be skeptical)
 - The client and agent are tested with **mocked** HTTP/download only; nothing has ever called a real

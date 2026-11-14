@@ -1,0 +1,211 @@
+{
+  "label": "vllm-l40s-bf16-conc",
+  "url": "https://jawaharas198--music-flamingo-musicflamingo-web.us-east.modal.run",
+  "started": "2026-11-07 18:26:41",
+  "runs": [
+    {
+      "phase": "first",
+      "track": "song_1.mp3",
+      "status": 200,
+      "wall_s": 13.172700241000712,
+      "words": 150,
+      "server": {
+        "audio_decode_s": 0.3692,
+        "ttft_s": 0.0351,
+        "decode_s": 6.1022,
+        "engine_s": 6.1373,
+        "prompt_tokens": 4172.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 48.999,
+        "api_total_s": 6.523,
+        "upload_bytes": 3924909.0
+      },
+      "caption": "This track is an uplifting Eurodance\u2011style Trance\u2011Pop anthem that blends the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of modern trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. A punchy electronic drum kit anchors the rhythm with a steady kick, crisp snare, and bright hi\u2011hats, while a deep, side\u2011chained synth bass provides a solid low\u2011end foundation. Layered on top are bright, arpeggiated lead synths and lush, atmospheric pads that create a euphoric, major\u2011key\u2011toned harmonic backdrop, giving the song its characteristic sense of hope and uplift. The duration of the piece is 163.47 seconds. Vocals are delivered by a female mezzo\u2011soprano whose timbre is clear, bright, and emotionally resonant. Her performance is melodic and expressive, employing a clean pop\u2011style delivery that is enhanced with tasteful reverb, delay, and subtle auto\u2011tune for a modern sheen."
+    },
+    {
+      "phase": "repeat",
+      "track": "song_1.mp3",
+      "status": 200,
+      "wall_s": 11.400692876999528,
+      "words": 150,
+      "server": {
+        "audio_decode_s": 0.3794,
+        "ttft_s": 0.0361,
+        "decode_s": 6.1028,
+        "engine_s": 6.1389,
+        "prompt_tokens": 4172.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 48.9942,
+        "api_total_s": 6.5337,
+        "upload_bytes": 3924909.0
+      },
+      "caption": "This track is an uplifting Eurodance\u2011style Trance\u2011Pop anthem that blends the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of modern trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. A punchy electronic drum kit anchors the rhythm with a steady kick, crisp snare, and bright hi\u2011hats, while a deep, side\u2011chained synth bass provides a solid low\u2011end foundation. Layered on top are bright, arpeggiated lead synths and lush, atmospheric pads that create a euphoric, major\u2011key\u2011toned harmonic backdrop, giving the song its characteristic sense of hope and uplift. The duration of the piece is 163.47 seconds. Vocals are delivered by a female mezzo\u2011soprano whose timbre is clear, bright, and emotionally resonant. Her performance is melodic and expressive, employing a clean pop\u2011style delivery that is enhanced with tasteful reverb, delay, and subtle auto\u2011tune for a modern sheen."
+    },
+    {
+      "phase": "conc",
+      "k": 1,
+      "makespan_s": 9.956759385000623,
+      "ok": 1,
+      "songs_per_min": 6.0260570412484915,
+      "wall_s": [
+        9.955997236000258
+      ],
+      "statuses": [
+        200
+      ],
+      "server_api_total_s": [
+        6.521
+      ],
+      "server_engine_s": [
+        6.1381
+      ]
+    },
+    {
+      "phase": "conc",
+      "k": 2,
+      "makespan_s": 18.920705025000643,
+      "ok": 2,
+      "songs_per_min": 6.3422583799831695,
+      "wall_s": [
+        9.45587743500073,
+        18.918151531001058
+      ],
+      "statuses": [
+        200,
+        200
+      ],
+      "server_api_total_s": [
+        6.5284,
+        6.7482
+      ],
+      "server_engine_s": [
+        6.1376,
+        6.1851
+      ]
+    },
+    {
+      "phase": "conc",
+      "k": 4,
+      "makespan_s": 17.72847434399955,
+      "ok": 4,
+      "songs_per_min": 13.5375439162497,
+      "wall_s": [
+        9.481458627000393,
+        16.386337953001203,
+        15.442600165999465,
+        17.72361230200113
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "server_api_total_s": [
+        6.5483,
+        7.078,
+        6.8823,
+        7.0084
+      ],
+      "server_engine_s": [
+        6.1563,
+        6.5119,
+        6.4906,
+        6.4475
+      ]
+    },
+    {
+      "phase": "conc",
+      "k": 8,
+      "makespan_s": 18.50773255799868,
+      "ok": 8,
+      "songs_per_min": 25.935105691407532,
+      "wall_s": [
+        12.78865097599919,
+        11.885274756001309,
+        17.198454820001643,
+        16.061204993999127,
+        10.452681959999609,
+        18.500198912999622,
+        17.420788438997988,
+        16.23881191500186
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "server_api_total_s": [
+        6.9502,
+        7.1151,
+        6.9702,
+        7.1195,
+        6.8071,
+        7.0619,
+        6.9668,
+        7.1535
+      ],
+      "server_engine_s": [
+        6.5534,
+        6.548,
+        6.5755,
+        6.5598,
+        6.4188,
+        6.5027,
+        6.5726,
+        6.5788
+      ]
+    }
+  ],
+  "stats_before": {
+    "engine": "vllm",
+    "model": "nvidia/music-flamingo-hf",
+    "revision": "e560c33247f20e2f735c87ce9adebb8e53befe69",
+    "gpu_memory_utilization": 0.9,
+    "max_model_len": 20480,
+    "max_num_seqs": 8,
+    "quantization": null,
+    "enforce_eager": false,
+    "engine_start_s": 77.416312323,
+    "gpu_mib": {
+      "used": 42255,
+      "total": 46068
+    },
+    "gpu_peak_used_mib": 42255,
+    "requests": {
+      "in_flight": 0,
+      "max_in_flight": 6,
+      "served": 24,
+      "failed": 0
+    },
+    "uptime_s": 249.1
+  },
+  "stats_after": {
+    "engine": "vllm",
+    "model": "nvidia/music-flamingo-hf",
+    "revision": "e560c33247f20e2f735c87ce9adebb8e53befe69",
+    "gpu_memory_utilization": 0.9,
+    "max_model_len": 20480,
+    "max_num_seqs": 8,
+    "quantization": null,
+    "enforce_eager": false,
+    "engine_start_s": 77.416312323,
+    "gpu_mib": {
+      "used": 42255,
+      "total": 46068
+    },
+    "gpu_peak_used_mib": 42255,
+    "requests": {
+      "in_flight": 0,
+      "max_in_flight": 7,
+      "served": 41,
+      "failed": 0
+    },
+    "uptime_s": 339.2
+  }
+}

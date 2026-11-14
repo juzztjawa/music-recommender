@@ -1,0 +1,330 @@
+{
+  "label": "vllm-l40s-bf16",
+  "url": "https://jawaharas198--music-flamingo-musicflamingo-web.us-east.modal.run",
+  "started": "2026-11-07 18:22:45",
+  "runs": [
+    {
+      "phase": "first",
+      "track": "song_1.mp3",
+      "status": 200,
+      "wall_s": 15.237446295999689,
+      "words": 177,
+      "server": {
+        "audio_decode_s": 0.381,
+        "ttft_s": 0.551,
+        "decode_s": 6.1015,
+        "engine_s": 6.6525,
+        "prompt_tokens": 4172.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 49.0043,
+        "api_total_s": 7.5814,
+        "upload_bytes": 3924909.0
+      },
+      "caption": "This track is an uplifting Eurodance\u2011style Trance\u2011Pop anthem that blends the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of modern trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, expansive stereo field that lets each element breathe. A punchy electronic drum kit anchors the rhythm with a steady kick, crisp snare, and bright hi\u2011hats, while a deep, pulsating synth bass provides a solid low\u2011end foundation. Layered on top are bright, arpeggiated lead synths and lush, atmospheric pads that create a euphoric, major\u2011key\u2011leaning harmonic backdrop, giving the song its characteristic sense of hope and uplift. The duration of the piece is 163.47 seconds. Vocals are delivered by a female lead whose timbre is clear, bright, and slightly ethereal. Her performance is melodic and emotive, conveying a sense of longing and gratitude. The voice is treated with generous reverb and delay, adding spaciousness and a dreamy quality that sits perfectly within the track\u2019s expansive mix. Lyrically, the song explores themes of love, dependence, and the transformative power of a significant other."
+    },
+    {
+      "phase": "seq",
+      "rep": 0,
+      "track": "song_1.mp3",
+      "status": 200,
+      "wall_s": 10.7591520950009,
+      "words": 150,
+      "server": {
+        "audio_decode_s": 0.3782,
+        "ttft_s": 0.0362,
+        "decode_s": 6.1114,
+        "engine_s": 6.1476,
+        "prompt_tokens": 4172.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 48.9246,
+        "api_total_s": 6.5421,
+        "upload_bytes": 3924909.0
+      },
+      "caption": "This track is an uplifting Eurodance\u2011style Trance\u2011Pop anthem that blends the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of modern trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. A punchy electronic drum kit anchors the rhythm with a steady kick, crisp snare, and bright hi\u2011hats, while a deep, side\u2011chained synth bass provides a solid low\u2011end foundation. Layered on top are bright, arpeggiated lead synths and lush, atmospheric pads that create a euphoric, major\u2011key\u2011toned harmonic backdrop, giving the song its characteristic sense of hope and uplift. The duration of the piece is 163.47 seconds. Vocals are delivered by a female mezzo\u2011soprano whose timbre is clear, bright, and emotionally resonant. Her performance is melodic and expressive, employing a clean pop\u2011style delivery that is enhanced with tasteful reverb, delay, and subtle auto\u2011tune for a modern sheen."
+    },
+    {
+      "phase": "seq",
+      "rep": 1,
+      "track": "song_1.mp3",
+      "status": 200,
+      "wall_s": 9.988020508997579,
+      "words": 150,
+      "server": {
+        "audio_decode_s": 0.3727,
+        "ttft_s": 0.0376,
+        "decode_s": 6.1017,
+        "engine_s": 6.1393,
+        "prompt_tokens": 4172.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 49.0028,
+        "api_total_s": 6.5269,
+        "upload_bytes": 3924909.0
+      },
+      "caption": "This track is an uplifting Eurodance\u2011style Trance\u2011Pop anthem that blends the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of modern trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. A punchy electronic drum kit anchors the rhythm with a steady kick, crisp snare, and bright hi\u2011hats, while a deep, side\u2011chained synth bass provides a solid low\u2011end foundation. Layered on top are bright, arpeggiated lead synths and lush, atmospheric pads that create a euphoric, major\u2011key\u2011toned harmonic backdrop, giving the song its characteristic sense of hope and uplift. The duration of the piece is 163.47 seconds. Vocals are delivered by a female mezzo\u2011soprano whose timbre is clear, bright, and emotionally resonant. Her performance is melodic and expressive, employing a clean pop\u2011style delivery that is enhanced with tasteful reverb, delay, and subtle auto\u2011tune for a modern sheen."
+    },
+    {
+      "phase": "seq",
+      "rep": 2,
+      "track": "song_1.mp3",
+      "status": 200,
+      "wall_s": 9.544059086001653,
+      "words": 150,
+      "server": {
+        "audio_decode_s": 0.3685,
+        "ttft_s": 0.036,
+        "decode_s": 6.102,
+        "engine_s": 6.138,
+        "prompt_tokens": 4172.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 49.0003,
+        "api_total_s": 6.5215,
+        "upload_bytes": 3924909.0
+      },
+      "caption": "This track is an uplifting Eurodance\u2011style Trance\u2011Pop anthem that blends the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of modern trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. A punchy electronic drum kit anchors the rhythm with a steady kick, crisp snare, and bright hi\u2011hats, while a deep, side\u2011chained synth bass provides a solid low\u2011end foundation. Layered on top are bright, arpeggiated lead synths and lush, atmospheric pads that create a euphoric, major\u2011key\u2011toned harmonic backdrop, giving the song its characteristic sense of hope and uplift. The duration of the piece is 163.47 seconds. Vocals are delivered by a female mezzo\u2011soprano whose timbre is clear, bright, and emotionally resonant. Her performance is melodic and expressive, employing a clean pop\u2011style delivery that is enhanced with tasteful reverb, delay, and subtle auto\u2011tune for a modern sheen."
+    },
+    {
+      "phase": "seq",
+      "rep": 0,
+      "track": "song_2.mp3",
+      "status": 200,
+      "wall_s": 10.807728509000299,
+      "words": 198,
+      "server": {
+        "audio_decode_s": 0.5455,
+        "ttft_s": 0.734,
+        "decode_s": 6.1464,
+        "engine_s": 6.8804,
+        "prompt_tokens": 6051.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 48.6467,
+        "api_total_s": 7.4424,
+        "upload_bytes": 5728941.0
+      },
+      "caption": "This track is a high\u2011energy Pop\u2011Punk anthem that blends the bright, sing\u2011along sensibility of modern pop\u2011rock with the fast\u2011paced aggression of classic punk. The production is polished and punchy, featuring a wide\u2011stereo mix that places distorted electric guitars front\u2011and\u2011center, a tight, driving bass line, and a crisp, energetic drum kit that propels the song forward with rapid snare hits and steady eighth\u2011note hi\u2011hat patterns. The guitars are layered with crunchy power\u2011chord riffs and melodic lead lines, while the bass locks tightly with the drums to give the track a solid rhythmic foundation. The overall mix is clean yet aggressive, with subtle compression and bright EQ that keep every element cutting through the dense arrangement. The duration of the piece is 238.63 seconds. Vocals are delivered by a male lead whose timbre is clear, slightly nasal, and full of youthful vigor. He sings in a melodic, anthemic style, often doubled with tight harmonies that reinforce the chorus hooks. The vocal processing is modest\u2014light reverb and a touch of delay add depth without obscuring the natural energy of his performance. Lyrically, the song celebrates the simple joy of late\u2011night pizza, turning a mundane snack into a playful, almost cinematic experience."
+    },
+    {
+      "phase": "seq",
+      "rep": 1,
+      "track": "song_2.mp3",
+      "status": 200,
+      "wall_s": 9.83789226600129,
+      "words": 192,
+      "server": {
+        "audio_decode_s": 0.5437,
+        "ttft_s": 0.0393,
+        "decode_s": 6.1459,
+        "engine_s": 6.1852,
+        "prompt_tokens": 6051.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 48.6504,
+        "api_total_s": 6.7442,
+        "upload_bytes": 5728941.0
+      },
+      "caption": "This track is a high\u2011energy Pop\u2011Punk anthem that blends the bright, sing\u2011along sensibility of modern pop\u2011rock with the fast\u2011paced aggression of classic punk. The production is polished and punchy, featuring a wide\u2011stereo mix that places distorted electric guitars front\u2011and\u2011center, a tight, driving bass line, and a crisp, energetic drum kit that propels the song forward with rapid snare hits and steady eighth\u2011note hi\u2011hat patterns. The guitars are layered with crunchy power\u2011chord riffs and melodic lead lines, while the bass locks tightly with the drums to reinforce the rhythmic drive. The overall mix is clean yet aggressive, with subtle compression and bright EQ that give each instrument space while maintaining a cohesive, \u201cwall\u2011of\u2011sound\u201d feel typical of contemporary pop\u2011punk releases. The duration of the piece is 238.63 seconds. Vocals are delivered by a male lead in a mid\u2011to\u2011high tenor range, characterized by a clear, slightly nasal timbre that cuts through the dense instrumentation. The performance is melodic and anthemic, employing a clean, energetic style that emphasizes the song\u2019s hook\u2011laden choruses. Production on the voice includes moderate compression, a touch of reverb for depth, and subtle delay to enhance the sing\u2011along quality without obscuring articulation."
+    },
+    {
+      "phase": "seq",
+      "rep": 2,
+      "track": "song_2.mp3",
+      "status": 200,
+      "wall_s": 10.046711425999092,
+      "words": 192,
+      "server": {
+        "audio_decode_s": 0.539,
+        "ttft_s": 0.0398,
+        "decode_s": 6.1457,
+        "engine_s": 6.1855,
+        "prompt_tokens": 6051.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 48.6519,
+        "api_total_s": 6.7394,
+        "upload_bytes": 5728941.0
+      },
+      "caption": "This track is a high\u2011energy Pop\u2011Punk anthem that blends the bright, sing\u2011along sensibility of modern pop\u2011rock with the fast\u2011paced aggression of classic punk. The production is polished and punchy, featuring a wide\u2011stereo mix that places distorted electric guitars front\u2011and\u2011center, a tight, driving bass line, and a crisp, energetic drum kit that propels the song forward with rapid snare hits and steady eighth\u2011note hi\u2011hat patterns. The guitars are layered with crunchy power\u2011chord riffs and melodic lead lines, while the bass locks tightly with the drums to reinforce the rhythmic drive. The overall mix is clean yet aggressive, with subtle compression and bright EQ that give each instrument space while maintaining a cohesive, \u201cwall\u2011of\u2011sound\u201d feel typical of contemporary pop\u2011punk releases. The duration of the piece is 238.63 seconds. Vocals are delivered by a male lead in a mid\u2011to\u2011high tenor range, characterized by a clear, slightly nasal timbre that cuts through the dense instrumentation. The performance is melodic and anthemic, employing a clean, energetic style that emphasizes the song\u2019s hook\u2011laden choruses. Production on the voice includes moderate compression, a touch of reverb for depth, and subtle delay to enhance the sing\u2011along quality without obscuring articulation."
+    },
+    {
+      "phase": "seq",
+      "rep": 0,
+      "track": "long_600s.mp3",
+      "status": 200,
+      "wall_s": 12.949349626996991,
+      "words": 191,
+      "server": {
+        "audio_decode_s": 1.2182,
+        "ttft_s": 2.0554,
+        "decode_s": 6.3755,
+        "engine_s": 8.4309,
+        "prompt_tokens": 15085.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 46.8984,
+        "api_total_s": 9.6659,
+        "upload_bytes": 9600565.0
+      },
+      "caption": "This track is a high\u2011energy Eurodance / Trance\u2011Pop hybrid that fuses the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. The duration of the piece is 600.00 seconds. Instrumentation & production: The arrangement is built around a punchy electronic drum kit that locks in a steady 4/4 beat, a deep, side\u2011chained synth bass that propels the groove, and bright, arpeggiated lead synths that carry the main melodic hooks. Layered pads and atmospheric textures add depth, while crisp, compressed percussion and tight side\u2011chain gating give the mix a club\u2011ready bounce. The overall sound is clean, with a glossy mastering that emphasizes both the low\u2011end thump and the sparkling highs of the synth leads. Vocal characteristics: A female lead delivers the verses and choruses with a clear, bright timbre and a melodic, pop\u2011oriented style. Her voice is treated with generous reverb and delay, creating an ethereal, spacious feel that sits atop the electronic backdrop. The vocal delivery is emotive and uplifting, matching the track\u2019s romantic and hopeful vibe."
+    },
+    {
+      "phase": "seq",
+      "rep": 1,
+      "track": "long_600s.mp3",
+      "status": 200,
+      "wall_s": 10.8546348259988,
+      "words": 191,
+      "server": {
+        "audio_decode_s": 1.2187,
+        "ttft_s": 0.0584,
+        "decode_s": 6.3742,
+        "engine_s": 6.4326,
+        "prompt_tokens": 15085.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 46.9079,
+        "api_total_s": 7.6672,
+        "upload_bytes": 9600565.0
+      },
+      "caption": "This track is a high\u2011energy Eurodance / Trance\u2011Pop hybrid that fuses the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. The duration of the piece is 600.00 seconds. Instrumentation & production: The arrangement is built around a punchy electronic drum kit that locks in a steady 4/4 beat, a deep, side\u2011chained synth bass that propels the groove, and bright, arpeggiated lead synths that carry the main melodic hooks. Layered pads and atmospheric textures add depth, while crisp, compressed percussion and tight side\u2011chain gating give the mix a club\u2011ready bounce. The overall sound is clean, with a glossy mastering that emphasizes both the low\u2011end thump and the sparkling highs of the synth leads. Vocal characteristics: A female lead delivers the verses and choruses with a clear, bright timbre and a melodic, pop\u2011oriented style. Her voice is treated with generous reverb and delay, creating an ethereal, spacious feel that sits atop the electronic backdrop. The vocal delivery is emotive and uplifting, matching the track\u2019s romantic and hopeful vibe."
+    },
+    {
+      "phase": "seq",
+      "rep": 2,
+      "track": "long_600s.mp3",
+      "status": 200,
+      "wall_s": 11.275391956998646,
+      "words": 191,
+      "server": {
+        "audio_decode_s": 1.2522,
+        "ttft_s": 0.0565,
+        "decode_s": 6.3747,
+        "engine_s": 6.4312,
+        "prompt_tokens": 15085.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 46.9039,
+        "api_total_s": 7.6986,
+        "upload_bytes": 9600565.0
+      },
+      "caption": "This track is a high\u2011energy Eurodance / Trance\u2011Pop hybrid that fuses the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. The duration of the piece is 600.00 seconds. Instrumentation & production: The arrangement is built around a punchy electronic drum kit that locks in a steady 4/4 beat, a deep, side\u2011chained synth bass that propels the groove, and bright, arpeggiated lead synths that carry the main melodic hooks. Layered pads and atmospheric textures add depth, while crisp, compressed percussion and tight side\u2011chain gating give the mix a club\u2011ready bounce. The overall sound is clean, with a glossy mastering that emphasizes both the low\u2011end thump and the sparkling highs of the synth leads. Vocal characteristics: A female lead delivers the verses and choruses with a clear, bright timbre and a melodic, pop\u2011oriented style. Her voice is treated with generous reverb and delay, creating an ethereal, spacious feel that sits atop the electronic backdrop. The vocal delivery is emotive and uplifting, matching the track\u2019s romantic and hopeful vibe."
+    },
+    {
+      "phase": "repeat",
+      "track": "song_1.mp3",
+      "status": 200,
+      "wall_s": 9.520579068001098,
+      "words": 150,
+      "server": {
+        "audio_decode_s": 0.3671,
+        "ttft_s": 0.0354,
+        "decode_s": 6.1692,
+        "engine_s": 6.2045,
+        "prompt_tokens": 4172.0,
+        "completion_tokens": 300.0,
+        "decode_tok_per_s": 48.4668,
+        "api_total_s": 6.5873,
+        "upload_bytes": 3924909.0
+      },
+      "caption": "This track is an uplifting Eurodance\u2011style Trance\u2011Pop anthem that blends the driving four\u2011on\u2011the\u2011floor pulse of classic Eurodance with the soaring, melodic synth work typical of modern trance\u2011infused pop. The production is polished and high\u2011fidelity, featuring a wide, immersive stereo field that lets each element breathe. A punchy electronic drum kit anchors the rhythm with a steady kick, crisp snare, and bright hi\u2011hats, while a deep, side\u2011chained synth bass provides a solid low\u2011end foundation. Layered on top are bright, arpeggiated lead synths and lush, atmospheric pads that create a euphoric, major\u2011key\u2011toned harmonic backdrop, giving the song its characteristic sense of hope and uplift. The duration of the piece is 163.47 seconds. Vocals are delivered by a female mezzo\u2011soprano whose timbre is clear, bright, and emotionally resonant. Her performance is melodic and expressive, employing a clean pop\u2011style delivery that is enhanced with tasteful reverb, delay, and subtle auto\u2011tune for a modern sheen."
+    },
+    {
+      "phase": "conc",
+      "k": 1,
+      "makespan_s": 9.31269414000053,
+      "ok": 1,
+      "songs_per_min": 6.442818705092421,
+      "wall_s": [
+        9.312024005997955
+      ],
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "phase": "conc",
+      "k": 4,
+      "makespan_s": 30.005124314000568,
+      "ok": 4,
+      "songs_per_min": 7.998633749636378,
+      "wall_s": [
+        9.418131941001775,
+        18.032735941000283,
+        30.002496897999663,
+        18.00443867800277
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    {
+      "phase": "conc",
+      "k": 8,
+      "makespan_s": 38.60496899499776,
+      "ok": 8,
+      "songs_per_min": 12.433632573625328,
+      "wall_s": [
+        31.231273572997452,
+        18.166508482001518,
+        16.705466226998396,
+        18.120673875000648,
+        16.687385250999796,
+        38.59723574799864,
+        16.681319529001485,
+        18.11450290799985
+      ],
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    }
+  ],
+  "stats_before": {
+    "engine": "vllm",
+    "model": "nvidia/music-flamingo-hf",
+    "revision": "e560c33247f20e2f735c87ce9adebb8e53befe69",
+    "gpu_memory_utilization": 0.9,
+    "max_model_len": 20480,
+    "max_num_seqs": 8,
+    "quantization": null,
+    "enforce_eager": false,
+    "engine_start_s": 77.416312323,
+    "gpu_mib": {
+      "used": 40657,
+      "total": 46068
+    },
+    "gpu_peak_used_mib": 40657,
+    "requests": {
+      "in_flight": 0,
+      "max_in_flight": 0,
+      "served": 0,
+      "failed": 0
+    },
+    "uptime_s": 12.8
+  },
+  "stats_after": {
+    "engine": "vllm",
+    "model": "nvidia/music-flamingo-hf",
+    "revision": "e560c33247f20e2f735c87ce9adebb8e53befe69",
+    "gpu_memory_utilization": 0.9,
+    "max_model_len": 20480,
+    "max_num_seqs": 8,
+    "quantization": null,
+    "enforce_eager": false,
+    "engine_start_s": 77.416312323,
+    "gpu_mib": {
+      "used": 42255,
+      "total": 46068
+    },
+    "gpu_peak_used_mib": 42255,
+    "requests": {
+      "in_flight": 0,
+      "max_in_flight": 6,
+      "served": 24,
+      "failed": 0
+    },
+    "uptime_s": 212.2
+  }
+}
