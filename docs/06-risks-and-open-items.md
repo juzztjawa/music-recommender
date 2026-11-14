@@ -25,6 +25,12 @@ work session the LLM/provider stages were **stubbed**. I did not run a real disc
 through the new UI. Provider credentials and the Music Flamingo endpoint are
 environment-dependent.
 
+## Reddit (via Composio): works live, not yet exercised by the agent
+A live search and thread read succeeded on 2026-11-07 (doc 10), but no real discovery request has used the tools
+yet. The managed Reddit app is shared with other Composio users, so throttling under load is possible and untested. Without
+Reddit, opinion evidence rests on user-built Spotify playlists (doc 9) plus Last.fm tags; those playlist reads
+work today but contradict Spotify's Feb 2026 changelog and could be switched off.
+
 ## Spotify export: untested against the real service
 Built and unit-tested with mocked HTTP; the first real consent + export is still to do (doc 4).
 

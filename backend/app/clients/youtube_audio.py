@@ -17,8 +17,12 @@ import yt_dlp
 
 # A single track shouldn't run long; this guards against yt-dlp's search
 # matching a full album/live-set/mix instead of the intended song, before
-# spending time downloading and transcoding it.
-_MAX_DURATION_SECONDS = 15 * 60
+# spending time downloading and transcoding it. The cap is derived from the
+# Modal endpoint's upload limit (modal_app/flamingo/api.py MAX_UPLOAD_BYTES)
+# so the two stay consistent: 40 MiB of 192 kbps mp3 is about 29 minutes.
+_MAX_UPLOAD_BYTES = 40 * 1024 * 1024
+_MP3_BYTES_PER_SECOND = 192_000 // 8  # matches preferredquality below
+_MAX_DURATION_SECONDS = _MAX_UPLOAD_BYTES // _MP3_BYTES_PER_SECOND
 
 
 class YoutubeAudioDownloadError(RuntimeError):

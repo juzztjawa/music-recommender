@@ -22,24 +22,26 @@ def test_all_three_prompts_exist_and_none_are_left_as_txt():
 def test_frontmatter_is_stripped_and_declared(filename):
     body, meta = prompts.load_prompt(filename), prompts.prompt_meta(filename)
 
-    assert {"name", "version", "purpose"} <= meta.keys()
-    assert meta["version"].isdigit()
+    assert {"name", "description"} <= meta.keys()
+    assert "version" not in meta
     assert len(body) > 200
     assert not body.startswith("---")
-    assert "version:" not in body.splitlines()[0]
+    assert "description:" not in body.splitlines()[0]
 
 
 def test_split_handles_missing_or_unclosed_frontmatter():
-    assert prompts._split("just text") == ({}, "just text")
-    assert prompts._split("---\nname: x\nno closing fence") == (
+    assert prompts.split_frontmatter("just text") == ({}, "just text")
+    assert prompts.split_frontmatter("---\nname: x\nno closing fence") == (
         {},
         "---\nname: x\nno closing fence",
     )
-    assert prompts._split("---\nname: x\n---\n\nbody\n") == ({"name": "x"}, "body")
+    assert prompts.split_frontmatter("---\nname: x\n---\n\nbody\n") == ({"name": "x"}, "body")
 
 
-def test_orchestrator_prompt_still_carries_the_flow():
-    body = prompts.load_prompt("orchestrator_system_prompt.md")
+def test_recommendation_skill_carries_the_flow():
+    from app.skills import load_skill_body
+
+    body = load_skill_body("recommendation")
     stages = ("UNDERSTAND", "IDENTIFY", "LISTEN", "HYPOTHESISE", "RETRIEVE", "SELECT", "EXPLAIN")
     for stage in stages:
         assert stage in body

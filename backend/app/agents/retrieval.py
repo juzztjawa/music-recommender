@@ -35,8 +35,12 @@ logger = logging.getLogger(__name__)
 # --- Structured output schema (FR-7.1 provenance, FR-9 ranking) ---
 
 
-SYSTEM_PROMPT = load_prompt("retrieval_system_prompt.md").replace(
-    "{max_tool_calls}", str(settings.retrieval_max_tool_calls)
+SYSTEM_PROMPT = (
+    load_prompt("retrieval_system_prompt.md")
+    .replace("{max_tool_calls}", str(settings.retrieval_max_tool_calls))
+    .replace("{max_model_rounds}", str(settings.retrieval_max_model_rounds))
+    .replace("{max_reddit_searches}", str(settings.retrieval_max_reddit_searches))
+    .replace("{max_reddit_threads}", str(settings.retrieval_max_reddit_threads))
 )
 
 
@@ -50,7 +54,16 @@ def _build_agent(model: BaseChatModel):
         model=model,
         tools=available_tools(),
         system_prompt=SYSTEM_PROMPT,
-        middleware=[tool_budget(settings.retrieval_max_tool_calls), handle_tool_errors],
+        middleware=[
+            tool_budget(
+                settings.retrieval_max_tool_calls,
+                per_tool={
+                    "search_reddit_tool": settings.retrieval_max_reddit_searches,
+                    "read_reddit_thread_tool": settings.retrieval_max_reddit_threads,
+                },
+            ),
+            handle_tool_errors,
+        ],
         response_format=ToolStrategy(RetrievalResult),
     )
 
@@ -64,7 +77,9 @@ def _agent_config() -> dict:
     return {"recursion_limit": 2 * settings.retrieval_max_model_rounds + 3}
 
 
-async def run_retrieval(hypothesis: str) -> RetrievalResult:
+async def run_retrieval(
+    hypothesis: str, input_songs: list[str] | None = None
+) -> RetrievalResult:
     """Run the Retrieval & Evidence Agent against a single search hypothesis.
 
     Bounded by a tool-call budget and a round limit (see config). If the
@@ -83,7 +98,12 @@ async def run_retrieval(hypothesis: str) -> RetrievalResult:
     key must be treated the same as a raised exception, not left to crash
     with a raw KeyError.
     """
-    messages = {"messages": [HumanMessage(content=hypothesis)]}
+    content = hypothesis
+    if input_songs:
+        content += "\n\nInput songs for this cluster (title and artist):\n" + "\n".join(
+            f"- {song}" for song in input_songs
+        )
+    messages = {"messages": [HumanMessage(content=content)]}
     try:
         agent = _build_agent(get_primary_model())
         result = await agent.ainvoke(messages, config=_agent_config())

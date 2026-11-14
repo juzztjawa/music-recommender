@@ -29,14 +29,18 @@ async def handle_tool_errors(
         )
 
 
-def tool_budget(limit: int):
+def tool_budget(limit: int, per_tool: dict[str, int] | None = None):
     """Middleware that lets an agent make at most `limit` tool calls.
+
+    `per_tool` additionally caps individual tools by name (e.g. Reddit searches).
 
     Past the limit a call is not executed; the agent gets a message telling it
     to stop searching and answer with what it has. Create one per agent run —
     the counter lives in the closure.
     """
     used = 0
+    used_by_tool: dict[str, int] = {}
+    caps = per_tool or {}
 
     @wrap_tool_call
     async def budget(
@@ -44,6 +48,18 @@ def tool_budget(limit: int):
         handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
     ) -> ToolMessage | Command:
         nonlocal used
+        name = request.tool_call["name"]
+        if name in caps:
+            used_by_tool[name] = used_by_tool.get(name, 0) + 1
+            if used_by_tool[name] > caps[name]:
+                return ToolMessage(
+                    content=(
+                        f"{name} is limited to {caps[name]} calls per run and that is used up. "
+                        "Work with what you already have."
+                    ),
+                    tool_call_id=request.tool_call["id"],
+                    status="error",
+                )
         used += 1
         if used > limit:
             return ToolMessage(

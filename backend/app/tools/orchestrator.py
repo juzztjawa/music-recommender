@@ -1,8 +1,9 @@
 """The supervisor agent's tools (architecture.md §2/§3).
 
 Each tool is one capability the supervisor can choose to use. The *order* in
-which they are used is not here: it lives in the supervisor's system prompt
-(`prompts/orchestrator_system_prompt.md`). Tools only enforce preconditions
+which they are used is not here: the recommendation workflow lives in a skill
+(`skills/recommendation/SKILL.md`, loaded via `load_skill`) and the supervisor's
+system prompt decides which kind of request it is. Tools only enforce preconditions
 (e.g. you cannot select from a cluster that was never retrieved) and return
 compact results; bulky data stays in `RunContext`.
 """
@@ -24,6 +25,7 @@ from app.config import settings
 from app.observability import current_stage
 from app.services.selection import filter_excluded, filter_input_songs, select_recommendations
 from app.services.threads import render_context
+from app.skills import load_skill_body, skill_names
 
 _YOUTUBE_HOSTS = ("youtube.com", "youtu.be", "music.youtube.com")
 
@@ -110,6 +112,18 @@ async def analyze_audio(
 
 
 @tool
+async def load_skill(
+    name: Annotated[str, Field(description="Skill name from the list in your instructions")],
+) -> str:
+    """Load a skill: the step-by-step workflow for one kind of request. Call it before starting
+    that kind of work, then follow what it says."""
+    body = load_skill_body(name)
+    if body is None:
+        raise ValueError(f"Unknown skill {name!r}. Available: {', '.join(skill_names())}.")
+    return body
+
+
+@tool
 async def get_session_history() -> dict:
     """What happened earlier in this conversation: previous user messages, what was said back, and
     the songs already recommended (with reasons for the latest ones). Call it first whenever the
@@ -141,16 +155,16 @@ async def retrieve_candidates(
     ],
 ) -> dict:
     """Search the music sources for candidate songs matching one hypothesis (one cluster).
-    Runs a retrieval specialist that queries Spotify, YouTube, YouTube Music, Reddit,
-    MusicBrainz and Last.fm and scores each candidate on evidence. Returns a cluster_id
-    and counts; the candidates themselves are held server-side."""
+    Runs a retrieval specialist that queries Spotify (incl. user-built playlists), Reddit,
+    YouTube, YouTube Music, MusicBrainz and Last.fm and scores each candidate on evidence. Returns a
+    cluster_id and counts; the candidates themselves are held server-side."""
     current_stage.set("retrieve_candidates")
     run = require_run()
     cluster_id = f"c{len(run.clusters) + 1}"
     cluster = ClusterState(theme=theme, hypothesis=hypothesis, input_songs=list(input_songs))
     run.clusters[cluster_id] = cluster
 
-    result = await run_retrieval(hypothesis)
+    result = await run_retrieval(hypothesis, list(input_songs))
     cluster.candidates = result.candidates
     cluster.providers_queried = result.providers_queried
     cluster.notes = result.notes
@@ -246,6 +260,7 @@ async def write_explanations(
 
 def orchestrator_tools() -> list[BaseTool]:
     return [
+        load_skill,
         resolve_song,
         analyze_audio,
         get_session_history,

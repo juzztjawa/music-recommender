@@ -57,7 +57,7 @@ def specialists(monkeypatch):
         seen["audio"].append(query)
         return AudioAnalysisResult(query=query, caption=f"caption for {query}")
 
-    async def fake_retrieval(hypothesis):
+    async def fake_retrieval(hypothesis, input_songs=None):
         seen["retrieval"].append(hypothesis)
         return RetrievalResult(
             candidates=[
@@ -291,7 +291,7 @@ async def test_time_limit_ends_gracefully_with_a_message_not_an_error(monkeypatc
     """If an optional wall-clock limit is set and hit, the request still ends with a reply."""
     import asyncio
 
-    async def slow_retrieval(hypothesis):
+    async def slow_retrieval(hypothesis, input_songs=None):
         await asyncio.sleep(5)
 
     monkeypatch.setattr(tools, "run_retrieval", slow_retrieval)

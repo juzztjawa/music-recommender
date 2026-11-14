@@ -9,7 +9,7 @@ recommendations each with an explanation grounded in the evidence found.
 ```mermaid
 flowchart LR
   UI[React SPA] -- "POST /chat/stream {message, thread_id}" --> API[FastAPI]
-  API --> S{{Supervisor agent<br/>system prompt = the flow}}
+  API --> S{{Supervisor agent<br/>system prompt = intents · skill = recommendation flow}}
   S <--> T1[resolve_song / analyze_audio]
   S <--> T2[retrieve_candidates<br/>sub-agent + 6 providers]
   S <--> T3[select_and_diversify]
@@ -21,8 +21,9 @@ flowchart LR
 ```
 
 The user's free-text message goes to one **supervisor agent** (`agents/orchestrator.py`) that decides
-which tools to call. The order of stages is in its system prompt
-(`prompts/orchestrator_system_prompt.md`), not in code. See doc 2.
+what a message needs and which tools to call. Its system prompt (`prompts/orchestrator_system_prompt.md`)
+defines the kinds of request; the recommendation workflow is a loadable skill
+(`skills/recommendation/SKILL.md`). None of it is in code. See doc 2.
 
 ## Who decides what
 
@@ -42,7 +43,7 @@ The final response is assembled from the tools' stored results, not from model t
 api/routes   HTTP only: parse request, call a service/agent, shape response
 agents/      LLM-driven stages (audio, hypothesis, retrieval, explanation) + orchestrator
 tools/       LangChain tool wrappers the retrieval agent can call
-clients/     One adapter per outside service (Spotify, YouTube, Reddit, …)
+clients/     One adapter per outside service (Spotify, Spotify playlists, Reddit via Composio, YouTube, …; the old PRAW client is in `backend/archive/reddit/`)
 services/    Plain logic: selection, auth, rate limit, export, run lookup, logging
 schemas/     Pydantic request/response/LLM-output models
 models/      SQLAlchemy tables

@@ -53,13 +53,19 @@ class Settings(BaseSettings):
     )
     ollama_primary_model: str = "glm-5.3-flash:cloud"
     ollama_fallback_model: str = "glm-5.3-flash:cloud"
-    ollama_request_timeout_seconds: float = Field(
-        default=60.0,
+    ollama_request_timeout_seconds: float | None = Field(
+        default=None,
         description=(
-            "Live-discovered: ChatOllama has no default timeout, so a single "
-            "stalled call (any of the several per request, across an agent's "
-            "tool loop) can hang a request indefinitely with no recovery."
+            "Read timeout for a model call, i.e. the longest silence tolerated "
+            "while waiting for the next streamed chunk. None (default) waits as "
+            "long as the model needs: a reasoning model can think for minutes "
+            "before its first token. Runaway requests are bounded by the "
+            "retrieval tool/round budgets and discovery_timeout_seconds."
         ),
+    )
+    ollama_connect_timeout_seconds: float = Field(
+        default=15.0,
+        description="Connection timeout only; fails fast when Ollama is unreachable.",
     )
 
     # --- Retrieval providers (FR-6) ---
@@ -71,11 +77,24 @@ class Settings(BaseSettings):
 
     youtube_api_key: str = ""
 
-    reddit_client_id: str = ""
-    reddit_client_secret: str = ""
-    reddit_user_agent: str = "orchestra-recommender/0.1"
-
     lastfm_api_key: str = ""
+
+    # Reddit via Composio's managed OAuth app (docs/10-reddit-composio.md). Reddit API
+    # credentials of our own are not needed: sign in once with `scripts/composio_reddit_check.py`.
+    composio_api_key: str = ""
+    composio_user_id: str = "orchestra-backend"  # the Composio "user" the Reddit login belongs to
+    composio_reddit_connected_account_id: str = ""  # optional; pin when several Reddit logins exist
+    reddit_max_comment_chars: int = 400
+
+    # User-built playlist evidence (docs/09-playlist-evidence.md). Spotify publishes
+    # no numeric limits, so these keep one request to a bounded number of calls:
+    # worst case = searches + fetches * pages  (default 6 + 15 * 2 = 36).
+    spotify_playlist_concurrency: int = 4
+    playlist_max_searches: int = 6
+    playlist_max_fetches: int = 15
+    playlist_max_tracks: int = 200  # per playlist; 2 pages of 100
+    # Score multiplier for Spotify-owned (editorial) playlists vs user-built (=1.0).
+    playlist_editorial_weight: float = 0.25
 
     # Playlist export (FR-16) uses the same Spotify app but the Authorization
     # Code flow. Spotify rejects `localhost` redirect URIs: use the loopback IP
@@ -100,9 +119,16 @@ class Settings(BaseSettings):
     # retrieval providers above rather than being treated as required.
     music_flamingo_endpoint_url: str = ""
     music_flamingo_api_key: str = ""
+    # Modal proxy token (Modal-Key / Modal-Secret): lets the request past Modal's edge check,
+    # which rejects unauthenticated calls before a GPU container starts.
+    music_flamingo_proxy_key: str = ""
+    music_flamingo_proxy_secret: str = ""
     music_flamingo_timeout_seconds: int = Field(
-        default=90,
-        description="Generous timeout for serverless GPU cold starts (~20-45s per §9)",
+        default=600,
+        description=(
+            "Whole-call timeout for the captioning endpoint. Must exceed a worst-case Modal "
+            "cold start (measured up to ~180 s when no GPU is free) plus inference."
+        ),
     )
 
     # --- Auth (magic link + JWT) ---
@@ -149,8 +175,12 @@ class Settings(BaseSettings):
     # searches for 10 minutes without ever answering; each model round is slow,
     # the searches are not. After `retrieval_max_tool_calls` calls it is told to
     # finish; `retrieval_max_model_rounds` is the hard backstop.
-    retrieval_max_tool_calls: int = 24
-    retrieval_max_model_rounds: int = 8
+    retrieval_max_tool_calls: int = 60
+    retrieval_max_model_rounds: int = 20
+    # Reddit allowances inside that budget (stated in the retrieval prompt and
+    # enforced in app/tools/retrieval.py).
+    retrieval_max_reddit_searches: int = 6
+    retrieval_max_reddit_threads: int = 4
 
     # --- Observability (Phase 7b) ---
     # Empty URI disables MLflow tracing entirely; the DB event log (FR-19)

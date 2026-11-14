@@ -14,11 +14,15 @@ surprises you, that's where to open the actual code.
 | 5 | [Frontend](05-frontend.md) | Phase 9: the React SPA and how it consumes the SSE stream |
 | 6 | [Risks & open items](06-risks-and-open-items.md) | What is **not** built, known weak spots, decisions only you can make |
 | 7 | [Observability](07-observability.md) | MLflow + event log: how to see an agent run |
+| 9 | [Playlist evidence](09-playlist-evidence.md) | User-built Spotify playlists as taste evidence: filters, limits, what's verified |
+| 10 | [Reddit via Composio](10-reddit-composio.md) | Listener-opinion evidence from Reddit without Reddit credentials: setup, safeguards, what's unverified |
 | 8 | [Chat layer](08-chat-layer.md) · [its handoff note](chat-layer-handoff.md) | Threads and the earlier intent design (partly superseded by the supervisor) |
 | – | [Modal handoff](modal-handoff.md) | Brief for hosting the audio-captioning model on Modal |
+| – | [Modal cold-start notes](modal-cold-start.md) | Measurements, setup and candidate fixes for the GPU container's cold start (handoff for an analysis session) |
 | – | [Frontend handoff](frontend-handoff.md) · [API contract](api-contract.md) | Brief and API reference for the agent redesigning the UI |
 
-**To run it locally: [SETUP.md](SETUP.md)** (kept up to date as setup changes).
+**To run it locally: [SETUP.md](../SETUP.md)** (kept up to date as setup changes).
+**How code in this repo is written: [CODING_STANDARDS.md](../CODING_STANDARDS.md)** (PEP 8-based; import rules, Modal layout, tests).
 
 Suggested order: 1 → 6 → 2 → whichever of 3/4/5 you care about.
 

@@ -1,7 +1,7 @@
 # Frontend handoff — redesign into a ChatGPT-style interface
 
 You are taking over the **frontend only** (`frontend/`). The backend is done and stays as is.
-Read this file, then `docs/api-contract.md`, then `docs/SETUP.md` to run it.
+Read this file, then `docs/api-contract.md`, then `SETUP.md` to run it.
 
 ## 1. The product in one paragraph
 Orchestra is an evidence-driven music discovery engine ("Rediscover the feeling that made you
@@ -98,10 +98,10 @@ follow-up messages via `thread_id` · result rendering with explanations and evi
 - Verify in a real browser against the running backend, not only by building. Say plainly what you
   could not verify.
 - When done, update `docs/05-frontend.md` (what/why/tradeoffs/verified vs not, review checklist) —
-  the owner reviews markdown, not source. If setup changes, update `docs/SETUP.md` and its changelog.
+  the owner reviews markdown, not source. If setup changes, update `SETUP.md` and its changelog.
 
 ## 8. Running it
-See `docs/SETUP.md`. Short version: `docker compose up -d`, `cd backend && uv run main.py`,
+See `SETUP.md`. Short version: `docker compose up -d`, `cd backend && uv run main.py`,
 `cd frontend && npm run dev`, open http://localhost:5173. With `ENVIRONMENT=test` the login page
 gives an "Open sign-in link" button (no email server exists).
 

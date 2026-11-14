@@ -45,14 +45,44 @@ async def test_calls_past_the_budget_are_not_executed_and_tell_the_agent_to_fini
     assert "budget" in tool_results[2].content and "final" in tool_results[2].content
 
 
+async def test_a_single_tool_can_be_capped_below_the_overall_budget():
+    model = ScriptedModel(
+        responses=[search_call(1), search_call(2), search_call(3), AIMessage(content="done")]
+    )
+    agent = create_agent(
+        model=model,
+        tools=[search_demo],
+        middleware=[tool_budget(10, per_tool={"search_demo": 2}), handle_tool_errors],
+    )
+
+    result = await agent.ainvoke({"messages": [("user", "go")]}, config={"recursion_limit": 8})
+
+    tool_results = [m for m in result["messages"] if m.type == "tool"]
+    assert [m.status for m in tool_results] == ["success", "success", "error"]
+    assert "limited to 2" in tool_results[2].content
+
+
 def test_recursion_limit_matches_configured_rounds(monkeypatch):
     monkeypatch.setattr(retrieval.settings, "retrieval_max_model_rounds", 8)
     assert retrieval._agent_config() == {"recursion_limit": 19}
 
 
-def test_prompt_states_the_budget():
-    assert "{max_tool_calls}" not in retrieval.SYSTEM_PROMPT
-    assert str(retrieval.settings.retrieval_max_tool_calls) in retrieval.SYSTEM_PROMPT
+def test_prompt_states_every_budget():
+    for placeholder in (
+        "max_tool_calls",
+        "max_model_rounds",
+        "max_reddit_searches",
+        "max_reddit_threads",
+    ):
+        assert "{" + placeholder + "}" not in retrieval.SYSTEM_PROMPT
+    s = retrieval.settings
+    for value in (
+        s.retrieval_max_tool_calls,
+        s.retrieval_max_model_rounds,
+        s.retrieval_max_reddit_searches,
+        s.retrieval_max_reddit_threads,
+    ):
+        assert str(value) in retrieval.SYSTEM_PROMPT
 
 
 async def test_failure_with_identical_primary_and_fallback_is_not_replayed(monkeypatch):

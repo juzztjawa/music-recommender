@@ -18,6 +18,7 @@ see `app/agents/retrieval.py`.
 import logging
 from typing import cast
 
+import httpx
 from langchain_core.messages import BaseMessage
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel
@@ -29,9 +30,18 @@ logger = logging.getLogger(__name__)
 
 def _build_model(model_name: str) -> ChatOllama:
     # client_kwargs is passed straight through to the underlying httpx
-    # client (ollama.Client/AsyncClient) — ChatOllama sets no timeout of its
-    # own, so without this a single stalled call can hang a request forever.
-    client_kwargs: dict = {"timeout": settings.ollama_request_timeout_seconds}
+    # client (ollama.Client/AsyncClient). ChatOllama streams, so `read` is the
+    # gap between chunks, not the call's total duration; None (default) disables
+    # it because a reasoning model can be silent for minutes before token one.
+    # Only connecting is bounded, so an unreachable server still fails fast.
+    client_kwargs: dict = {
+        "timeout": httpx.Timeout(
+            connect=settings.ollama_connect_timeout_seconds,
+            read=settings.ollama_request_timeout_seconds,
+            write=30.0,
+            pool=None,
+        )
+    }
     if settings.ollama_api_key:
         client_kwargs["headers"] = {"Authorization": f"Bearer {settings.ollama_api_key}"}
 

@@ -1,7 +1,8 @@
 # 2. Discovery: the supervisor agent
 
 Source: `backend/app/agents/orchestrator.py`, `backend/app/tools/orchestrator.py`,
-`backend/app/prompts/orchestrator_system_prompt.md`, `backend/app/agents/run_context.py`.
+`backend/app/prompts/orchestrator_system_prompt.md`, `backend/app/skills/recommendation/SKILL.md`,
+`backend/app/agents/run_context.py`.
 
 > **History:** until 2026-10-31 this was a hardcoded five-node pipeline (audio → hypothesis →
 > retrieval → selection → explanation) taking only a list of song titles. That contradicted the
@@ -10,17 +11,24 @@ Source: `backend/app/agents/orchestrator.py`, `backend/app/tools/orchestrator.py
 
 ## The shape
 One **supervisor agent** (`langchain.agents.create_agent`) receives the user's free-text message,
-the chat's history and the default options. It decides which tools to call. **The stage order lives
-in its system prompt, not in code**: understand → identify → listen → hypothesise → retrieve → select
-→ explain → reply. Changing the flow means editing a text file.
+the chat's history and the default options and decides what the message needs. **Nothing about the
+order is in code.** The system prompt says who it is and which kinds of request it handles
+(recommend/refine, break down one song, answer about earlier results, talk about music, ask when
+unclear); the step-by-step recommendation workflow (understand → identify → listen → hypothesise →
+retrieve → select → explain → reply) is a **skill** (`app/skills/recommendation/SKILL.md`) that the
+supervisor loads with the `load_skill` tool when a request is a recommendation. Adding a flow means
+adding a `SKILL.md`; its name and description are listed in the system prompt automatically.
+Non-recommendation requests are answered in the reply text itself (the audio caption is not shown
+anywhere else), using `resolve_song` / `analyze_audio` / `get_session_history`.
 
 ```
-message ─► Supervisor (LLM, system prompt = the flow)
+message ─► Supervisor (LLM; system prompt = intents, skill = recommendation flow)
               │ calls tools, may batch independent calls
+              ├─ load_skill            the workflow for a kind of request
               ├─ get_session_history   earlier turns of this thread (FR-14)
               ├─ resolve_song          title / Spotify / YouTube link → title + artist (FR-1.1)
               ├─ analyze_audio         yt-dlp + audio model → caption (input songs only, FR-3.4)
-              ├─ retrieve_candidates   sub-agent: 6 provider tools + evidence scoring (FR-6/7/9)
+              ├─ retrieve_candidates   sub-agent: provider tools + playlist evidence (doc 9) + scoring (FR-6/7/9)
               ├─ select_and_diversify  deterministic rules, FR-8/10/15
               └─ write_explanations    LLM call, evidence-grounded (FR-12)
            ◄─ final message (`reply`);  result is assembled from tool state, not from model text
@@ -46,7 +54,7 @@ message ─► Supervisor (LLM, system prompt = the flow)
   `interaction_events` (`payload.thread_id`), no extra table. The route loads the last 6 turns and the
   supervisor reads them via `get_session_history` and skips songs already recommended (FR-14/15). It is
   read only inside the thread that wrote it (no cross-session effect).
-- **Limits:** supervisor recursion limit 40 (≈20 tool rounds); the **retrieval sub-agent has its own budget** — at most 24 tool calls (then it is told to answer with what it has) and 8 model rounds as a hard backstop (`retrieval_max_*` in config). There is **no wall-clock limit by default**; `DISCOVERY_TIMEOUT_SECONDS` is optional and, if set, ends a request gracefully with a message and whatever finished (never an error). Why: live, with no budget the retrieval agent kept searching for 10 minutes without answering; ~91% of that time was model latency, the searches took under a second each.
+- **Limits:** supervisor recursion limit 40 (≈20 tool rounds); the **retrieval sub-agent has its own budget** — at most 60 tool calls and 20 model rounds (`retrieval_max_*` in config; both numbers, and the Reddit allowance of 6 searches + 4 thread reads, are stated in the retrieval prompt and enforced by middleware — past the cap the agent is told to answer with what it has). There is **no wall-clock limit by default**; `DISCOVERY_TIMEOUT_SECONDS` is optional and, if set, ends a request gracefully with a message and whatever finished (never an error). Why: live, with no budget the retrieval agent kept searching for 10 minutes without answering; ~91% of that time was model latency, the searches took under a second each.
 - **Model fallback:** if the primary model fails *before any output*, retry once on the fallback
   model; after output has started it raises (replaying would repeat tool calls).
 - **Streaming:** `agent.astream(stream_mode="updates")` is translated to `tool started/done/error`,

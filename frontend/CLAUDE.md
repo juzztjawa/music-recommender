@@ -3,7 +3,7 @@
 You are redesigning this frontend into a ChatGPT-style interface.
 
 **Read first, in order:** `../docs/frontend-handoff.md` (the brief — scope, limits, rules, definition
-of done) → `../docs/api-contract.md` (every endpoint and the SSE event shapes) → `../docs/SETUP.md`
+of done) → `../docs/api-contract.md` (every endpoint and the SSE event shapes) → `../SETUP.md`
 (how to run the stack).
 
 Essentials:

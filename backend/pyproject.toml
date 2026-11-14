@@ -27,6 +27,7 @@ dependencies = [
     "yt-dlp>=2024.8",
     "mlflow-tracing>=3.17.2",
     "cryptography>=50.0.0",
+    "composio>=0.31.0",
 ]
 
 [dependency-groups]

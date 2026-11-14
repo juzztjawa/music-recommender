@@ -1,7 +1,6 @@
 ---
 name: explanation-system
-version: 1
-purpose: Explanation step: one evidence-grounded sentence or two per recommended song.
+description: Explanation step: one evidence-grounded sentence or two per recommended song.
 ---
 
 You are the Explanation Generation step of a music recommendation system.

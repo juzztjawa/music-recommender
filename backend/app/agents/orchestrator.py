@@ -1,10 +1,13 @@
 """Orchestrator — the Supervisor (architecture.md §2/§3).
 
 A tool-calling agent. It receives the user's message (free text, links,
-descriptions, follow-ups) plus the thread's history, and decides which tools to
-call. The stage order — understand, identify, listen, hypothesise, retrieve,
-select, explain, reply — is written in its system prompt
-(`prompts/orchestrator_system_prompt.md`), not hardcoded here; the tools
+descriptions, follow-ups) plus the thread's history, and decides what the
+message needs: a recommendation, a breakdown of one song, an answer about
+earlier results, or plain conversation. Who it is and which requests it handles
+is in its system prompt (`prompts/orchestrator_system_prompt.md`); the
+recommendation workflow (understand, identify, listen, hypothesise, retrieve,
+select, explain, reply) is a skill it loads on demand
+(`skills/recommendation/SKILL.md`), not hardcoded here; the tools
 (`app/tools/orchestrator.py`) enforce preconditions and keep the bulky data in
 a per-request `RunContext`.
 
@@ -33,11 +36,12 @@ from app.prompts import load_prompt
 from app.schemas.audio import AudioAnalysisResult
 from app.schemas.retrieval import EvidenceItem
 from app.services.threads import ThreadTurn
+from app.skills import skill_index
 from app.tools.orchestrator import orchestrator_tools
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = load_prompt("orchestrator_system_prompt.md")
+SYSTEM_PROMPT = load_prompt("orchestrator_system_prompt.md").replace("{skills}", skill_index())
 
 # --- Output shape ---
 
